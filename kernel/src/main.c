@@ -3,9 +3,11 @@
 int main(int argc, char* argv[]) {
     t_log* logger = iniciar_logger("KERNEL", LOG_LEVEL_INFO);
     log_info(logger, "Hola!");
-    iniciarServidor("4000", logger, "io"); //Maqueta
-    iniciarServidor("4001", logger, "cpu"); //Maqueta
-    //crearConexion(ip, puerto, logger); //Maqueta
+
+    crearConexion("127.0.0.1", "5003", logger); //Maqueta
+
+    int socketServidor = iniciarServidor("4000", logger, "kernel");
+    int socketCliente = esperarCliente(socketServidor, logger);
 
     return 0;
 }
