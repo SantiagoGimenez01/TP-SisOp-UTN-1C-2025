@@ -1,10 +1,9 @@
-#include <utils/hello.h>
-#include <utils/sockets.h>
+#include "main.h"
 
 
 int main(int argc, char* argv[]) {
-    saludar("io");
-    crearConexion(ip, puerto, log);//Maqueta
+    cargarConfiguracion("io.config");
+    
 
 
     return 0;

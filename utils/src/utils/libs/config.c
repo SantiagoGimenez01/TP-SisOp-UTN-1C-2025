@@ -8,3 +8,81 @@ t_config* iniciar_config(char* path) {
     }
     return config;
 }
+void check_null_config() {
+    if (config != NULL)
+        return;
+
+    fprintf(stderr, "ERROR: Config es NULL en %s:%d\n", __func__, __LINE__);
+    exit(EXIT_FAILURE);
+}
+
+t_log_level get_log_level(){
+    char* str = config_get_string_value(config, "LOG_LEVEL");
+    return log_level_from_string(str);
+}
+
+config_cpu_t load_config_cpu() {
+    check_null_config();
+    config_cpu_t configCpu;
+
+    configCpu.ip_memoria = config_get_string_value(config, "IP_MEMORIA");
+    configCpu.puerto_memoria = config_get_int_value(config, "PUERTO_MEMORIA");
+    configCpu.ip_kernel = config_get_string_value(config, "IP_KERNEL");
+    configCpu.puerto_kernel_dispatch = config_get_int_value(config, "PUERTO_KERNEL_DISPATCH");
+    configCpu.puerto_kernel_interrupt = config_get_int_value(config, "PUERTO_KERNEL_INTERRUPT");
+    configCpu.entradas_tlb = config_get_int_value(config, "ENTRADAS_TLB");
+    configCpu.reemplazo_tlb = config_get_string_value(config, "REEMPLAZO_TLB");
+    configCpu.entradas_cache = config_get_int_value(config, "ENTRADAS_CACHE");
+    configCpu.reemplazo_cache = config_get_string_value(config, "REEMPLAZO_CACHE");
+    configCpu.retardo_cache = config_get_int_value(config, "RETARDO_CACHE");
+    configCpu.log_level = get_log_level();
+
+    return configCpu;
+}
+
+config_kernel_t load_config_kernel() {
+    check_null_config();
+    config_kernel_t configKernel;
+
+    configKernel.ip_memoria = config_get_string_value(config, "IP_MEMORIA");
+    configKernel.puerto_memoria = config_get_int_value(config, "PUERTO_MEMORIA");
+    configKernel.puerto_escucha_dispatch = config_get_int_value(config, "PUERTO_ESCUCHA_DISPATCH");
+    configKernel.puerto_escucha_interrupt = config_get_int_value(config, "PUERTO_ESCUCHA_INTERRUPT");
+    configKernel.puerto_escucha_io = config_get_int_value(config, "PUERTO_ESCUCHA_IO");
+    configKernel.algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
+    configKernel.algoritmo_cola_new = config_get_string_value(config, "ALGORITMO_COLA_NEW");
+    configKernel.alfa = config_get_double_value(config, "ALFA");  // o config_get_string_value y parsear a double si falla
+    configKernel.tiempo_suspension = config_get_int_value(config, "TIEMPO_SUSPENSION");
+    configKernel.log_level = get_log_level();
+
+    return configKernel;
+}
+config_io_t load_config_io() {
+    check_null_config();
+    config_io_t configIo;
+
+    configIo.ip_kernel = config_get_string_value(config, "IP_KERNEL");
+    configIo.puerto_kernel = config_get_int_value(config, "PUERTO_KERNEL");
+    configIo.log_level = get_log_level();
+
+    return configIo;
+}
+
+config_memoria_t load_config_memoria() {
+    check_null_config();
+    config_memoria_t configMemoria;
+
+    configMemoria.puerto_escucha = config_get_int_value(config, "PUERTO_ESCUCHA");
+    configMemoria.tam_memoria = config_get_int_value(config, "TAM_MEMORIA");
+    configMemoria.tam_pagina = config_get_int_value(config, "TAM_PAGINA");
+    configMemoria.entradas_por_tabla = config_get_int_value(config, "ENTRADAS_POR_TABLA");
+    configMemoria.cantidad_niveles = config_get_int_value(config, "CANTIDAD_NIVELES");
+    configMemoria.retardo_memoria = config_get_int_value(config, "RETARDO_MEMORIA");
+    configMemoria.path_swapfile = config_get_string_value(config, "PATH_SWAPFILE");
+    configMemoria.retardo_swap = config_get_int_value(config, "RETARDO_SWAP");
+    configMemoria.log_level = get_log_level();
+    configMemoria.dump_path = config_get_string_value(config, "DUMP_PATH");
+
+    return configMemoria;
+}
+
