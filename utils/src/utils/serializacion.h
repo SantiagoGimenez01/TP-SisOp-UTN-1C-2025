@@ -1,7 +1,7 @@
 #ifndef SERIALIZACION_H
 #define SERIALIZACION_H
 
-#include "commons.h"
+#include "./commons/commons.h"
 #include "structs.h"
 
 void* serializar_pcb(t_pcb* pcb, uint32_t* size);
