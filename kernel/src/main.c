@@ -1,13 +1,14 @@
 #include "main.h"
-
+config_kernel_t configKERNEL;
+t_log* logger;
 
 int main(int argc, char* argv[]) {
-    cargarConfiguracion("kernel.config");
+    cargarConfiguracionKernel("kernel.config", &configKERNEL, &logger);
+    establecerConexiones();
+    conectar_con_memoria(); // DE PRUEBA
 
-    crearConexion("127.0.0.1", "5003", logger); //Maqueta
-
-    int socketServidor = iniciarServidor("4000", logger, "kernel");
-    int socketCliente = esperarCliente(socketServidor, logger);
-
+    while (1) { // simular haciendo algo hasta que se conecte cpu
+        sleep(1);
+    }
     return 0;
 }

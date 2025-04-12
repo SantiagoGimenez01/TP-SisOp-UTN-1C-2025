@@ -1,6 +1,7 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 #include <commons/collections/list.h>
+#include <stdint.h>
 
 
 typedef enum {

@@ -2,9 +2,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "../commons/commons.h"
+#include "../commons/common.h"
 #include "commons/log.h"
-t_config* config
+
 typedef struct {
     char* ip_memoria;
     uint32_t puerto_memoria;
@@ -53,11 +53,10 @@ typedef struct {
 } config_kernel_t;
 
 t_config* iniciar_config(char* path);
-void check_null_config();
-t_log_level get_log_level();
-config_cpu_t load_config_cpu();
-config_kernel_t load_config_kernel();
-config_io_t load_config_io();
-config_memoria_t load_config_memoria();
-
+void check_null_config(t_config* config);
+t_log_level get_log_level(t_config* config);
+config_cpu_t load_config_cpu(t_config* config);
+config_kernel_t load_config_kernel(t_config* config);
+config_io_t load_config_io(t_config* config);
+config_memoria_t load_config_memoria(t_config* config);
 #endif

@@ -1,10 +1,11 @@
 #include "main.h"
 
-int main(int argc, char* argv[]) {
-    cargarConfiguracion("memoria.config");
+config_memoria_t configMEMORIA;
+t_log* logger;
 
-    int socket = iniciarServidor("5003", logger, "Memoria");
-    esperarCliente(socket, logger);
+int main(int argc, char* argv[]) {
+    cargarConfiguracionMemoria("memoria.config", &configMEMORIA, &logger);
+    establecerConexiones();
  
     return 0;
 }

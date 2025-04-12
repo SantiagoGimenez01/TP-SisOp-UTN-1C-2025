@@ -59,35 +59,36 @@ int esperarCliente(int socket_servidor, t_log* logger) {
 }
 
 int crearConexion(char* ip, char* puerto, t_log* logger) {
-    struct addrinfo hints, *server_info;
-    int socket_cliente;
-
+    struct addrinfo hints, *servinfo;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = 0;
 
-    if (getaddrinfo(ip, puerto, &hints, &server_info) != 0) {
-        perror("Error en getaddrinfo");
-        exit(EXIT_FAILURE);
+    int rv = getaddrinfo(ip, puerto, &hints, &servinfo);
+    if (rv != 0) {
+        log_error(logger, "Error en getaddrinfo: %s", gai_strerror(rv));
+        return -1;
     }
 
-    socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
-
+    int socket_cliente = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
     if (socket_cliente == -1) {
-        perror("Error creando socket");
-        exit(EXIT_FAILURE);
+        log_error(logger, "Error al crear socket cliente");
+        freeaddrinfo(servinfo);
+        return -1;
     }
 
-    if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1) {
-        perror("Error en connect");
-        exit(EXIT_FAILURE);
+    if (connect(socket_cliente, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+        log_error(logger, "Error al conectar al servidor");
+        close(socket_cliente);
+        freeaddrinfo(servinfo);
+        return -1;
     }
 
-    freeaddrinfo(server_info);
-
-    log_info(logger, "Cliente conectado a %s:%s", ip, puerto);
+    freeaddrinfo(servinfo);
     return socket_cliente;
 }
+
 
 int enviarBuffer(void* buffer, uint32_t size, int socket_cliente) {
     return send(socket_cliente, buffer, size, 0);
@@ -103,4 +104,22 @@ void* recibirBuffer(uint32_t* size, int socket_cliente) {
 
 void liberarConexion(int socket) {
     close(socket);
+}
+
+
+void enviar_handshake(int socket, t_modulo modulo) {
+    if (send(socket, &modulo, sizeof(t_modulo), 0) <= 0) {
+        perror("Error al enviar handshake");
+        exit(EXIT_FAILURE);
+    }
+}
+
+t_modulo recibir_handshake(int socket) {
+    t_modulo modulo;
+    ssize_t bytes_recibidos = recv(socket, &modulo, sizeof(t_modulo), MSG_WAITALL);
+    if (bytes_recibidos <= 0) {
+        perror("Error al recibir handshake");
+        exit(EXIT_FAILURE);
+    }
+    return modulo;
 }

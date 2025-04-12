@@ -1,11 +1,10 @@
 #include "utils/libs/config.h"
 #include "utils/libs/logger.h"
+#include "conexiones.h"
+#include "globales.h"
+void cargarConfiguracionMemoria(char* path, config_memoria_t* configMemoria, t_log** logger) {
+    t_config* config = iniciar_config(path);
+    *configMemoria = load_config_memoria(config);
+    *logger = iniciar_logger("Modulo Memoria", configMemoria->log_level);
 
-config_memoria_t configMEMORIA;
-t_log* logger;
-
-void cargarConfiguracion(char* path) {
-    load_config(path);
-    configMEMORIA = load_config_memoria();
-    logger = iniciar_logger("memoria", configMEMORIA.log_level);
 }
