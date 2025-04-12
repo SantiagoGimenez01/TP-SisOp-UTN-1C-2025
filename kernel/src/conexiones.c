@@ -11,7 +11,7 @@ void comprobacionModulo(t_modulo modulo_origen, t_modulo esperado, char* modulo,
 
     if (modulo_origen == esperado) {
         log_info(logger, "Se conecto %s", modulo);
-        operacion(socket_cliente); // aca es donde vamos a trabajar las operaciones que provengan de CPU
+        operacion(socket_cliente); // Operaciones de modulos
     }else{
         log_warning(logger, "No es %s", modulo);
         close(socket_cliente);
