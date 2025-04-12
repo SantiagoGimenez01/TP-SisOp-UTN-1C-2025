@@ -53,5 +53,9 @@ void operarKernel(int socket_cliente) {
 }
 
 void operarCPU(int socket_cliente) {
-    log_info(logger, "Manejando operacion cpu...");
+    log_info(logger, "Manejando operación de CPU con Memoria...");
+   while (1) {
+        // Acá va la logica de recibir una operacion de Memoria o de enviar pedidos
+        
+    }
 }
