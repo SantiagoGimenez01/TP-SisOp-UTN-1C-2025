@@ -1,4 +1,6 @@
 #include "main.h"
+#include "configuracion.h"
+
 config_kernel_t configKERNEL;
 t_log* logger;
 

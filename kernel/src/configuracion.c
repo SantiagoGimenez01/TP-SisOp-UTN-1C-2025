@@ -1,9 +1,6 @@
+#include "configuracion.h"
 #include "conexiones.h"
 #include "globales.h"
-
-/*
-void cargarConfiguracionKernel(char* path, config_kernel_t* configKernel, t_log** logger);
-
 
 void cargarConfiguracionKernel(char* path, config_kernel_t* configKernel, t_log** logger) {
     t_config* config = iniciar_config(path);          // Carga el config en memoria
@@ -13,8 +10,3 @@ void cargarConfiguracionKernel(char* path, config_kernel_t* configKernel, t_log*
     cpus = list_create();
     ios = list_create();
 }
-*/
-
-// Me parecio que estaba mal (Por lo que entendi en Sintaxis xd) que la firma e implementacion de la funcion esten en el mismo archivo
-// Cree 2 archivos de configuracion (.h y .c), en uno puse la implementacion de la funcion y en el otro la firma
-// Por ultimo le agregue al main de kernel el configuracion.h
