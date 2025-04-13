@@ -9,6 +9,13 @@ int socket_memoria;
 int socket_dispatch;
 int socket_interrupt;
 
+void comprobarSocket(int socket, char* modulo){
+    if(socket == -1){
+        log_error(logger, "No se pudo conectar a %s", modulo);
+        exit(EXIT_FAILURE);
+    }
+}
+
 void establecerConexiones() {
     char* puerto_memoria = string_itoa(configCPU.puerto_memoria);
     char* puerto_dispatch = string_itoa(configCPU.puerto_kernel_dispatch);
@@ -16,28 +23,19 @@ void establecerConexiones() {
 
     // Conexion persistente a MEMORIA
     socket_memoria = crearConexion(configCPU.ip_memoria, puerto_memoria, logger);
-    if (socket_memoria == -1) {
-        log_error(logger, "No se pudo conectar a MEMORIA.");
-        exit(EXIT_FAILURE);
-    }
+    comprobarSocket(socket_memoria, "MEMORIA");
     log_info(logger, "Conectado a MEMORIA.");
     enviar_handshake(socket_memoria, MODULO_CPU_DISPATCH);
 
     // Conexion persistente a KERNEL - DISPATCH
     socket_dispatch = crearConexion(configCPU.ip_kernel, puerto_dispatch, logger);
-    if (socket_dispatch == -1) {
-        log_error(logger, "No se pudo conectar a KERNEL DISPATCH.");
-        exit(EXIT_FAILURE);
-    }
+    comprobarSocket(socket_dispatch, "KERNEL DISPATCH");
     log_info(logger, "Conectado a KERNEL DISPATCH.");
     enviar_handshake(socket_dispatch, MODULO_CPU_DISPATCH);
 
     // Conexion persistente a KERNEL - INTERRUPT
     socket_interrupt = crearConexion(configCPU.ip_kernel, puerto_interrupt, logger);
-    if (socket_interrupt == -1) {
-        log_error(logger, "No se pudo conectar a KERNEL INTERRUPT.");
-        exit(EXIT_FAILURE);
-    }
+    comprobarSocket(socket_interrupt, "KERNEL INTERRUPT");
     log_info(logger, "Conectado a KERNEL INTERRUPT.");
     enviar_handshake(socket_interrupt, MODULO_CPU_INTERRUPT);
 

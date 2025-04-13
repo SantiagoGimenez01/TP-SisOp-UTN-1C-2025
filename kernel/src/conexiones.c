@@ -7,6 +7,17 @@
 #include "inicializar.h"
 
 // --- Funciones auxiliares para cada puerto ---
+void comprobacionModulo(t_modulo modulo_origen, t_modulo esperado, char* modulo, void (*operacion)(int),int socket_cliente){
+
+    if (modulo_origen == esperado) {
+        log_info(logger, "Se conecto %s", modulo);
+        operacion(socket_cliente); // Operaciones de modulos
+    }else{
+        log_warning(logger, "No es %s", modulo);
+        close(socket_cliente);
+    }
+
+}
 
 void* escuchar_dispatch(void* socket_servidor_void) {
     int socket_servidor = (intptr_t)socket_servidor_void;
@@ -18,17 +29,11 @@ void* escuchar_dispatch(void* socket_servidor_void) {
         // estoy en duda con esto si hacer recv o recibir handshake
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
-
-        if (modulo_origen == MODULO_CPU_DISPATCH) {
-            log_info(logger, "Se conecto CPU por DISPATCH.");
-            operarDispatch(socket_cliente); // aca es donde vamos a trabajar las operaciones que provengan de CPU
-        } else {
-            log_warning(logger, "No es DISPATCH");
-            close(socket_cliente);
-        }
+        comprobacionModulo(modulo_origen, MODULO_CPU_DISPATCH, "CPU_DISPATCH", operarDispatch, socket_cliente);
     }
     return NULL;
 }
+
 
 void* escuchar_interrupt(void* socket_servidor_void) {
     int socket_servidor = (intptr_t)socket_servidor_void;
@@ -39,14 +44,7 @@ void* escuchar_interrupt(void* socket_servidor_void) {
         agregarNuevaCpu(socket_cliente); // Terminamos de completar la nueva CPU 
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
-
-        if (modulo_origen == MODULO_CPU_INTERRUPT) {
-            log_info(logger, "Se conecto CPU por INTERRUPT.");
-            operarInterrupt(socket_cliente); // mismo caso interrupciones
-        } else {
-            log_warning(logger, "No es INTERRUPT.");
-            close(socket_cliente);
-        }
+        comprobacionModulo(modulo_origen, MODULO_CPU_INTERRUPT, "CPU_INTERRUPT", operarInterrupt, socket_cliente);
     }
     return NULL;
 }
@@ -61,13 +59,7 @@ void* escuchar_io(void* socket_servidor_void) {
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
 
-        if (modulo_origen == MODULO_IO) {
-            log_info(logger, "Se conecto un modulo IO.");
-            operarIo(socket_cliente); // operandon conlas IO
-        } else {
-            log_warning(logger, "No es IO.");
-            close(socket_cliente);
-        }
+        comprobacionModulo(modulo_origen, MODULO_IO, "IO", operarIo, socket_cliente);
     }
     return NULL;
 }
