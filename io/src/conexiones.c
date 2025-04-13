@@ -12,7 +12,7 @@ void comprobarSocket(int socket, char* moduloOrigen, char* moduloDestino){
     }
 }
 
-void establecerConexiones() {
+void establecerConexiones(char* nombre_IO) {
     char* puerto_kernel = string_itoa(configIO.puerto_kernel);
 
     // Conexion persistente al KERNEL
