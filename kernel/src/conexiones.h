@@ -2,6 +2,8 @@
 #define CONEXIONES_H
 
 #include "globales.h"
+#include "../../utils/src/utils/paquete.h"
+
 void establecerConexiones();
 
 void operarDispatch(int socket_cliente);

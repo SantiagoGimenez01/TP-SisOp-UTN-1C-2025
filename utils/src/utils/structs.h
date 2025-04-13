@@ -39,7 +39,8 @@ typedef enum {
     INTERRUPCION_CPU,
     PAGE_FAULT,    
     WRITE_PAGE,  
-    SYSCALL   
+    SYSCALL,
+    INICIAR_IO   
 } t_opcode;
 
 typedef enum {

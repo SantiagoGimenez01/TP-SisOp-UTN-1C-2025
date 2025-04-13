@@ -6,7 +6,22 @@
 
 extern config_kernel_t configKERNEL;  //Esto por ahora lo pongo asi porque los tengo que usar en otro archivo, como conexiones.c pero creo que hay algo mejor
 extern t_log* logger;
+extern t_list* cpus;  
+extern t_list* ios;
+extern t_list* cpus_incompletas;
+typedef struct {
+    int id;                  
+    int socket_dispatch;      
+    int socket_interrupt;    
+    int disponible;          
+} t_cpu;
 
+typedef struct {
+    char* nombre;             
+    int socket;                
+    int disponible;           
+    int pid_actual;            
+} t_io;
 typedef enum {
     CORTO_PLAZO,
     MEDIANO_PLAZO,

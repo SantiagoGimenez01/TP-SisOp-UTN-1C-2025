@@ -6,5 +6,9 @@ t_log* logger;
 int main(int argc, char* argv[]) {
     cargarConfiguracionCPU("cpu.config", &configCPU, &logger);
     establecerConexiones();
+
+    while(1){
+        usleep(1);
+    }
     return 0;
 }

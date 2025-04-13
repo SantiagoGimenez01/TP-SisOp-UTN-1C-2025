@@ -4,7 +4,7 @@
 #include "utils/structs.h"
 #include <pthread.h>
 #include "conexiones.h"
-
+#include "inicializar.h"
 
 // --- Funciones auxiliares para cada puerto ---
 
@@ -14,7 +14,7 @@ void* escuchar_dispatch(void* socket_servidor_void) {
 
     while (1) {
         int socket_cliente = esperarCliente(socket_servidor, logger);
-
+        agregarNuevaCpuInc(socket_cliente); // agregamos el primer SOCKET a nuestra nueva CPU inicializando esta misma a la vez
         // estoy en duda con esto si hacer recv o recibir handshake
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
@@ -36,7 +36,7 @@ void* escuchar_interrupt(void* socket_servidor_void) {
 
     while (1) {
         int socket_cliente = esperarCliente(socket_servidor, logger);
-
+        agregarNuevaCpu(socket_cliente); // Terminamos de completar la nueva CPU 
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
 
@@ -126,5 +126,32 @@ void operarInterrupt(int socket_cliente) {
 }
 
 void operarIo(int socket_cliente) {
-    log_info(logger, "Manejando conexion IO");
-}
+    log_info(logger, "Registrando nuevo dispositivo IO...");
+
+    t_opcode codOperacion;
+    int bytes_recibidos = recv(socket_cliente, &codOperacion, sizeof(t_opcode), MSG_WAITALL);
+    log_info(logger, "Bytes recibidos del opcode: %d", bytes_recibidos);
+    log_info(logger, "Codigo de operacion recibido: %d", codOperacion);
+
+    if (codOperacion != INICIAR_IO) {
+        log_error(logger, "Operacion inesperada. Se esperaba INICIAR_IO.");
+        close(socket_cliente);
+        return;
+    }
+
+    log_info(logger, "Esperando paquete...");
+    t_paquete* paquete = recibir_paquete(socket_cliente);
+
+    log_info(logger, "Paquete recibido, extrayendo nombre...");
+    char* nombre_io = recibir_string_de_paquete(paquete);
+
+    log_info(logger, "Nombre de IO recibido: %s", nombre_io);
+
+    agregarNuevaIo(nombre_io, socket_cliente);
+    log_info(logger, "IO agregado correctamente.");
+
+    free(nombre_io);
+    eliminar_paquete(paquete); 
+
+} // si hay muchos logs es para debbuggear que llgue todo bien, luego los borramos 
+

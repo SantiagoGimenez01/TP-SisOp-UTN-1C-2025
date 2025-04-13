@@ -4,7 +4,9 @@ t_log* logger;
 
 int main(int argc, char* argv[]) {
     cargarConfiguracionKernel("kernel.config", &configKERNEL, &logger);
+    
     establecerConexiones();
+    
     conectar_con_memoria(); // DE PRUEBA
 
     while (1) { // simular haciendo algo hasta que se conecte cpu
