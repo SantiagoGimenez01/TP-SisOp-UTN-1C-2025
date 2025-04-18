@@ -5,7 +5,17 @@ config_kernel_t configKERNEL;
 t_log* logger;
 
 int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        printf("Ingrese los 2 parametros del primer proceso: %s <archivo_pseudocodigo> <tamanio_proceso>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    char* archivo_pseudocodigo = argv[1];
+    int tamanio_proceso = atoi(argv[2]);
+
     cargarConfiguracionKernel("kernel.config", &configKERNEL, &logger);
+
+    log_info(logger, "Archivo pseudocodigo INICIAL: %s", archivo_pseudocodigo);
+    log_info(logger, "Tamanio del proceso INICIAL: %d", tamanio_proceso);
     
     establecerConexiones();
     

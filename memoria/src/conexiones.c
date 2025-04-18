@@ -20,9 +20,11 @@ void* atender_cliente(void* socket_cliente_void) {
         close(socket_cliente); // Kernel = conexión efimera (DUDAS, pero hay que probar)
     }
     else if (modulo_origen == MODULO_CPU_DISPATCH) {
-        log_info(logger, "Se conecto una CPU.");
-        
-        operarCPU(socket_cliente);// TENGO DUDAS CON ESTO (PARA MI)
+        int id_cpu;
+        recv(socket_cliente, &id_cpu, sizeof(int), 0);
+        log_info(logger, "Se conecto una CPU. ID: %d", id_cpu);
+
+        operarCPU(socket_cliente);
         
     }
     else {

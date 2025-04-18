@@ -2,6 +2,6 @@
 #define CONEXIONES_H
 #include "globales.h"
 
-void establecerConexiones();
+void establecerConexiones(int id_cpu);
 
 #endif

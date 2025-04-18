@@ -25,7 +25,12 @@ void* escuchar_dispatch(void* socket_servidor_void) {
 
     while (1) {
         int socket_cliente = esperarCliente(socket_servidor, logger);
-        agregarNuevaCpuInc(socket_cliente); // agregamos el primer SOCKET a nuestra nueva CPU inicializando esta misma a la vez
+        int id_cpu;
+        recv(socket_cliente, &id_cpu, sizeof(int), 0);
+        log_info(logger, "CPU ID recibido: %d en socket FD: %d", id_cpu, socket_cliente);
+        agregarNuevaCpuInc(socket_cliente, id_cpu); // agregamos el primer SOCKET a nuestra nueva CPU inicializando esta misma a la vez
+        log_info(logger, "CPUs incompletas: %d, CPUs completas: %d", list_size(cpus_incompletas), list_size(cpus));
+
         // estoy en duda con esto si hacer recv o recibir handshake
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
@@ -41,7 +46,12 @@ void* escuchar_interrupt(void* socket_servidor_void) {
 
     while (1) {
         int socket_cliente = esperarCliente(socket_servidor, logger);
-        agregarNuevaCpu(socket_cliente); // Terminamos de completar la nueva CPU 
+        int id_cpu;
+        recv(socket_cliente, &id_cpu, sizeof(int), 0);
+        log_info(logger, "CPU ID recibido: %d en socket FD: %d", id_cpu, socket_cliente);
+        agregarNuevaCpu(socket_cliente, id_cpu); // Terminamos de completar la nueva CPU 
+        log_info(logger, "CPUs incompletas: %d, CPUs completas: %d", list_size(cpus_incompletas), list_size(cpus));
+
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
         comprobacionModulo(modulo_origen, MODULO_CPU_INTERRUPT, "CPU_INTERRUPT", operarInterrupt, socket_cliente);
