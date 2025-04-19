@@ -9,6 +9,7 @@ extern t_log* logger;
 extern t_list* cpus;  
 extern t_list* ios;
 extern t_list* cpus_incompletas;
+extern t_list* pcbs;
 typedef struct {
     int id;                  
     int socket_dispatch;      
@@ -27,5 +28,8 @@ typedef enum {
     MEDIANO_PLAZO,
     LARGO_PLAZO,
 } t_planificador;
+
+extern uint32_t pid_global; // Este se va incrementando
+
 
 #endif

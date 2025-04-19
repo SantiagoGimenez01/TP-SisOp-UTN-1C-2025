@@ -11,14 +11,14 @@ void* serializar_pcb(t_pcb* pcb, uint32_t* size) {
     offset += sizeof(uint32_t);
     memcpy(buffer + offset, &(pcb->tablaPaginas), sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    memcpy(buffer + offset, &(pcb->estRafagaAnt), sizeof(double));
+    memcpy(buffer + offset, &(pcb->estimacion_rafaga), sizeof(double));
     offset += sizeof(double);
-    memcpy(buffer + offset, &(pcb->realRafaga), sizeof(double));
+    memcpy(buffer + offset, &(pcb->rafaga_real), sizeof(double));
     offset += sizeof(double);
     memcpy(buffer + offset, &(pcb->tamanio), sizeof(uint32_t));
     offset += sizeof(uint32_t);
     return buffer;
-}
+}//VOLVER PARA QUE QUEDE BIEN
 
 t_pcb* deserializar_pcb(void* buffer) {
     t_pcb* pcb = malloc(sizeof(t_pcb));
@@ -30,14 +30,13 @@ t_pcb* deserializar_pcb(void* buffer) {
     offset += sizeof(uint32_t);
     memcpy(&(pcb->tablaPaginas), buffer + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    memcpy(&(pcb->estRafagaAnt), buffer + offset, sizeof(double));
+    memcpy(&(pcb->estimacion_rafaga), buffer + offset, sizeof(double));
     offset += sizeof(double);
-    memcpy(&(pcb->realRafaga), buffer + offset, sizeof(double));
+    memcpy(&(pcb->rafaga_real), buffer + offset, sizeof(double));
     offset += sizeof(double);
     memcpy(&(pcb->tamanio), buffer + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    pcb->metricas_estado = NULL;
-    pcb->metricas_tiempo = NULL;
+    
 
     return pcb;
 }

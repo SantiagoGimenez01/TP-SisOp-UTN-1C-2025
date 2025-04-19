@@ -5,13 +5,13 @@
 
 
 typedef enum {
-    ESTADO_NEW,
-    ESTADO_READY,
-    ESTADO_EXEC,
-    ESTADO_BLOCKED,
-    ESTADO_SUSPENDED_READY,
-    ESTADO_SUSPENDED_BLOCKED,
-    ESTADO_EXIT
+    NEW,
+    READY,
+    EXEC,
+    BLOCKED,
+    SUSP_READY,
+    SUSP_BLOCKED,
+    EXIT_PROCESS  
 } t_estado_proceso;
 
 typedef enum{
@@ -74,13 +74,14 @@ typedef struct {
 typedef struct {
     uint32_t pid;                  
     uint32_t pc;                   
-    uint32_t tablaPaginas;        
-    uint32_t estRafagaAnt;       
-    uint32_t proxRafaga;
-    uint32_t realRafaga;     
+    uint32_t tablaPaginas;            
     uint32_t tamanio;               
-    t_list* metricas_estado;     // eso lo podemos tomar como una sola lista para tiempo y estado y jugar dentro de esto *   
-    t_list* metricas_tiempo;        
+    t_estado_proceso estado_actual;
+    uint64_t momento_entrada_estado;
+    t_list* metricas; // Lista de t_metricas_estado*
+    double estimacion_rafaga;   // Para SJF
+    double rafaga_real;         // Para actualizar estimacion       
+    char* archivo_pseudocodigo;
 } t_pcb;
 
 typedef struct {

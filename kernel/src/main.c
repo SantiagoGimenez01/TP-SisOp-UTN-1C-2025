@@ -3,6 +3,7 @@
 
 config_kernel_t configKERNEL;
 t_log* logger;
+uint32_t pid_global = 0;
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -20,6 +21,12 @@ int main(int argc, char* argv[]) {
     establecerConexiones();
     
     conectar_con_memoria(); // DE PRUEBA
+
+    inicializarEstados(); // aca inicializo las listas de todos los estados 
+
+    inicializar_proceso(archivo_pseudocodigo,tamanio_proceso);
+
+    iniciar_planificacion_largo_plazo();
 
     while (1) { // simular haciendo algo hasta que se conecte cpu
         sleep(1);
