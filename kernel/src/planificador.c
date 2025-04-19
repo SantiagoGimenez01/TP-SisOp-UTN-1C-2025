@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "inicializar.h"
+
 
 t_list* cola_new;
 t_list* cola_ready;
@@ -78,10 +80,16 @@ void* planificador_largo_plazo(void* arg) {
         t_pcb* siguiente = obtener_siguiente_de_new();
         if (!siguiente) continue;
 
-        // consulta a MEMORIA
-        // Por ahora lo pasamos directamente a READY
-        list_add(cola_ready, siguiente);
-        log_info(logger, "Proceso %d paso a READY", siguiente->pid);
+        bool aceptado = solicitar_espacio_a_memoria(siguiente);
+
+        if (aceptado) {
+            cambiar_estado(siguiente, READY);
+            list_add(cola_ready, siguiente);
+            log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
+        } else {
+            log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
+            // Dejarlo en NEW dependiento QUE
+        }
     }
 
     return NULL;
@@ -91,4 +99,40 @@ void iniciar_planificacion_largo_plazo() {
     pthread_t hilo_largo_plazo;
     pthread_create(&hilo_largo_plazo, NULL, planificador_largo_plazo, NULL);
     pthread_detach(hilo_largo_plazo);
+}
+
+
+
+bool solicitar_espacio_a_memoria(t_pcb* pcb) {
+    char* puerto_memoria = string_itoa(configKERNEL.puerto_memoria);
+    int socket_memoria = crearConexion(configKERNEL.ip_memoria, puerto_memoria, logger);
+    free(puerto_memoria);
+
+    if (socket_memoria < 0) {
+        log_error(logger, "No se pudo conectar a Memoria para iniciar proceso %d", pcb->pid);
+        return false;
+    }
+
+    enviar_handshake(socket_memoria, MODULO_KERNEL);
+    enviar_opcode(INICIAR_PROCESO, socket_memoria);
+
+    t_paquete* paquete = crear_paquete();
+    agregar_int_a_paquete(paquete, pcb->pid);
+    agregar_int_a_paquete(paquete, pcb->tamanio);
+    agregar_string_a_paquete(paquete, pcb->archivo_pseudocodigo);
+    enviar_paquete(paquete, socket_memoria);
+    eliminar_paquete(paquete);
+
+    // Esperamos respuesta de MEMORIA
+    int cod_respuesta;
+    recv(socket_memoria, &cod_respuesta, sizeof(int), MSG_WAITALL);
+
+    bool aceptado = false;
+
+    if (cod_respuesta == RESPUESTA_OK) {
+        aceptado = true;
+    }
+
+    close(socket_memoria);
+    return aceptado;
 }

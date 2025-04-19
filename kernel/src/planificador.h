@@ -14,5 +14,5 @@ void inicializarEstados();
 void* planificador_largo_plazo(void* arg);
 void encolar_en_new(t_pcb* nuevo_proceso);
 void iniciar_planificacion_largo_plazo();
-
+bool solicitar_espacio_a_memoria(t_pcb* pcb);
 #endif

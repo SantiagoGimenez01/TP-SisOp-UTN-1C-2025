@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     
     establecerConexiones();
     
-    conectar_con_memoria(); // DE PRUEBA
+    //conectar_con_memoria(); // DE PRUEBA
 
     inicializarEstados(); // aca inicializo las listas de todos los estados 
 
