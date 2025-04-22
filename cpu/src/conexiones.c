@@ -4,10 +4,7 @@
 #include "utils/structs.h"
 #include "conexiones.h"
 #include "globales.h"
-// Sockets globales
-int socket_memoria;
-int socket_dispatch;
-int socket_interrupt;
+
 
 void comprobarSocket(int socket, char* modulo){
     if(socket == -1){
@@ -49,3 +46,92 @@ void establecerConexiones(int id_cpu) {
     free(puerto_interrupt);
 }
 
+void escucharOperaciones() {
+    pthread_t hilo_dispatch, hilo_interrupt;
+
+    pthread_create(&hilo_dispatch, NULL, escuchar_dispatch, NULL);
+    pthread_detach(hilo_dispatch);
+
+    pthread_create(&hilo_interrupt, NULL, escuchar_interrupt, NULL);
+    pthread_detach(hilo_interrupt);
+}
+
+void* escuchar_dispatch(void* arg) {
+    while (1) {
+        t_opcode codigo_operacion;
+        int bytes = recv(socket_dispatch, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
+
+        if (bytes <= 0) {
+            log_error(logger, "Error al recibir mensaje por DISPATCH o desconexion");
+            break;
+        }
+
+        switch (codigo_operacion) {
+            case EJECUTAR_PROCESO:
+                log_info(logger, "Se recibio EJECUTAR_PROCESO por DISPATCH");
+
+                uint32_t pid = 0;
+                uint32_t pc = 0;
+                double estimacion = 0;
+
+                recibir_pcb(socket_dispatch, &pid, &pc, &estimacion);
+
+                log_info(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
+
+                ejecutar_ciclo(pid, pc); 
+
+                break;
+
+            default:
+                log_warning(logger, "Código de operacion no reconocido en DISPATCH: %d", codigo_operacion);
+                break;
+        }
+    }
+
+    return NULL;
+}
+
+void* escuchar_interrupt(void* arg) {
+    while (1) {
+        t_opcode codigo_operacion;
+        int bytes = recv(socket_interrupt, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
+
+        if (bytes <= 0) {
+            log_error(logger, "Error al recibir mensaje por INTERRUPT o desconexion");
+            break;
+        }
+
+        switch (codigo_operacion) {
+            case INTERRUPCION:
+                log_info(logger, "Se recibio una INTERRUPCION desde Kernel");
+
+                // ciclo de ejecución que debe detenerse
+                // interrumpir_proceso(); //
+
+                break;
+
+            default:
+                log_warning(logger, "Codigo de operacion no reconocido en INTERRUPT: %d", codigo_operacion);
+                break;
+        }
+    }
+
+    return NULL;
+}
+
+void recibir_pcb(int socket_dispatch, uint32_t* pid, uint32_t* pc, double* estimacion) {
+    t_paquete* paquete = recibir_paquete(socket_dispatch);
+
+    int offset = 0;
+    memcpy(pid, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    memcpy(pc, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    memcpy(estimacion, paquete->buffer->stream + offset, sizeof(double));
+
+    eliminar_paquete(paquete);
+
+    log_info(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%.2f", *pid, *pc, *estimacion);
+}

@@ -36,11 +36,14 @@ typedef enum {
     SOLICITUD_READ,
     SOLICITUD_WRITE,
     SOLICITUD_DUMP,
-    INTERRUPCION_CPU,
+    INTERRUPCION,
     PAGE_FAULT,    
-    WRITE_PAGE,  
+    LEER_PAGINA,
+    ESCRIBIR_PAGINA,  
     SYSCALL,
-    INICIAR_IO   
+    INICIAR_IO,
+    EJECUTAR_PROCESO,
+    PEDIR_INSTRUCCION
 } t_opcode;
 
 typedef enum {
@@ -84,11 +87,6 @@ typedef struct {
     char* archivo_pseudocodigo;
 } t_pcb;
 
-typedef struct {
-    t_instruccion_id id;
-    uint32_t parametro1;
-    uint32_t parametro2;
-} t_instruccion;
 
 
 #endif

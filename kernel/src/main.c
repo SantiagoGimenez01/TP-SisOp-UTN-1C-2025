@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 
     inicializar_proceso(archivo_pseudocodigo,tamanio_proceso);
 
-    iniciar_planificacion_largo_plazo();
+    iniciar_planificadores();
 
     while (1) { // simular haciendo algo hasta que se conecte cpu
         sleep(1);

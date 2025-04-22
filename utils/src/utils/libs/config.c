@@ -81,6 +81,7 @@ config_memoria_t load_config_memoria(t_config* config) {
     configMemoria.retardo_swap = config_get_int_value(config, "RETARDO_SWAP");
     configMemoria.log_level = get_log_level(config);
     configMemoria.dump_path = config_get_string_value(config, "DUMP_PATH");
+    configMemoria.pseudocodigoPath = config_get_string_value(config, "PSEUDOCODIGO_PATH");
 
     return configMemoria;
 }

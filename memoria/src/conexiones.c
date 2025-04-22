@@ -6,7 +6,6 @@
 #include "utils/paquete.c"
 #include <math.h>
 #include <pthread.h>
-#include "inicializar.h"
 
 
 
@@ -93,7 +92,7 @@ void operarKernel(int socket_cliente) {
             log_info(logger, "El proceso %d requiere %d páginas", pid, paginas_necesarias);
 
             if (hay_espacio_para(paginas_necesarias)) {
-                crear_estructuras_para_proceso(pid);  // crea la jerarquica sin asignar marcos por ahora
+                crear_estructuras_para_proceso(pid, archivo, tamanio);  // crea la jerarquica sin asignar marcos por ahora
 
                 int respuesta_ok = RESPUESTA_OK;
                 send(socket_cliente, &respuesta_ok, sizeof(int), 0);
@@ -117,12 +116,72 @@ void operarKernel(int socket_cliente) {
 
 
 void operarCPU(int socket_cliente) {
-    log_info(logger, "Manejando operación de CPU con Memoria...");
-   while (1) {
-        // Acá va la logica de recibir una operacion de Memoria o de enviar pedidos
-        
+    log_info(logger, "Manejando operacion de CPU con Memoria...");
+
+    while (1) {
+        t_opcode opcode;
+        int status = recv(socket_cliente, &opcode, sizeof(t_opcode), MSG_WAITALL);
+        if (status <= 0) {
+            log_warning(logger, "Se cerro la conexion con CPU.");
+            close(socket_cliente);
+            return;
+        }
+
+        switch (opcode) {
+            case PEDIR_INSTRUCCION:
+                log_info(logger, "Se recibio PEDIR_INSTRUCCION desde CPU");
+                t_paquete* paquete = recibir_paquete(socket_cliente);
+                int offset = 0;
+                int pid;
+                memcpy(&pid, paquete->buffer->stream + offset, sizeof(int));
+                offset += sizeof(int);
+
+                int pc;
+                memcpy(&pc, paquete->buffer->stream + offset, sizeof(int));
+                offset += sizeof(int);
+
+                eliminar_paquete(paquete);
+
+                t_proceso_en_memoria* proceso = buscar_proceso_por_pid(pid);
+
+                if (proceso == NULL) {
+                    log_error(logger, "PID %d no encontrado en memoria", pid);
+                    // No deberia pasar
+                    return;
+                }
+
+                char* instruccion = list_get(proceso->instrucciones, pc);
+
+                if (instruccion == NULL) {
+                    log_warning(logger, "PID %d - Instruccion no encontrada en PC %d", pid, pc);
+                    // VEREMOS QUE SUCEDE
+                    return;
+                }
+
+                log_info(logger, "PID %d - PC %d - Enviando instruccion: %s", pid, pc, instruccion);
+                t_paquete* respuesta = crear_paquete();
+                agregar_string_a_paquete(respuesta, instruccion);
+                enviar_paquete(respuesta, socket_cliente);
+                eliminar_paquete(respuesta);
+
+
+                break;
+
+            case LEER_PAGINA:
+                
+                break;
+
+            case ESCRIBIR_PAGINA:
+                
+                break;
+
+            default:
+                log_warning(logger, "Operacion desconocida desde CPU: %d", opcode);
+                break;
+        }
     }
 }
+
 
 
 bool hay_espacio_para(uint32_t paginas_requeridas) {

@@ -70,6 +70,16 @@ char* recibir_string_de_paquete(t_paquete* paquete) {
     return str;
 }
 
+/*char* recibir_string_de_paquete(t_paquete* paquete) {
+    uint32_t size;
+    memcpy(&size, paquete->buffer->stream, sizeof(uint32_t));
+
+    char* str = malloc(size);
+    memcpy(str, paquete->buffer->stream + sizeof(uint32_t), size);
+    
+    return str;
+}*/
+
 
 void enviar_opcode(t_opcode codigo, int socket) {
     send(socket, &codigo, sizeof(t_opcode), 0);

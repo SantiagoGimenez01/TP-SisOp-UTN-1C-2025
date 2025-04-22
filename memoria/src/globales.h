@@ -26,6 +26,9 @@ typedef struct {
 typedef struct {
     uint32_t pid;
     t_tabla_nivel* tabla_nivel_1;
+    char* nombre_archivo;
+    int tamanio;
+    t_list* instrucciones;  // Lista de char*
 } t_proceso_en_memoria;
 
 

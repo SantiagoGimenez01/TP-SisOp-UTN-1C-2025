@@ -36,7 +36,8 @@ typedef struct {
     char* path_swapfile;            
     uint32_t retardo_swap;          
     t_log_level log_level;
-    char* dump_path;                
+    char* dump_path;
+    char* pseudocodigoPath;                
 } config_memoria_t;
 
 typedef struct {

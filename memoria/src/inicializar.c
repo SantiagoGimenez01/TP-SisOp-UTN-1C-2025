@@ -38,12 +38,48 @@ t_tabla_nivel* crear_tabla_nivel(int nivel_actual, int nivel_maximo) {
     return tabla;
 }
 
-void crear_estructuras_para_proceso(uint32_t pid) {
+void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tamanio) {
     t_proceso_en_memoria* nuevo = malloc(sizeof(t_proceso_en_memoria));
     nuevo->pid = pid;
+    nuevo->tamanio = tamanio;
+    nuevo->nombre_archivo = strdup(nombre_archivo); 
+
     nuevo->tabla_nivel_1 = crear_tabla_nivel(1, configMEMORIA.cantidad_niveles);
+
+    // Inicializar y cargar las instrucciones directamente
+    nuevo->instrucciones = list_create();
+    cargar_instrucciones(nuevo->instrucciones, nombre_archivo);  
+
     list_add(procesos_en_memoria, nuevo);
 
-    log_info(logger, "Se inicializaron las estructuras de tablas para el proceso %d", pid);
+    log_info(logger, "Se inicializaron estructuras y cargaron instrucciones para el proceso %d", pid);
 }
+
+
+void cargar_instrucciones(t_list* lista_instrucciones, char* nombre_archivo) {
+    char ruta_archivo[256];
+    snprintf(ruta_archivo, sizeof(ruta_archivo), "%s/%s.txt", configMEMORIA.pseudocodigoPath, nombre_archivo);
+
+    FILE* archivo = fopen(ruta_archivo, "r");
+    if (!archivo) {
+        log_error(logger, "No se pudo abrir el archivo de pseudocodigo: %s", ruta_archivo);
+        return;
+    }
+
+    char* linea = NULL;
+    size_t len = 0;
+    ssize_t read;
+    int numero_linea = 0;
+
+    while ((read = getline(&linea, &len, archivo)) != -1) {
+        linea[strcspn(linea, "\n")] = '\0';  // remover \n
+        list_add(lista_instrucciones, strdup(linea));
+        log_trace(logger, "Instruccion [%d]: %s", numero_linea++, linea);
+    }
+
+    free(linea);
+    fclose(archivo);
+}
+
+
 
