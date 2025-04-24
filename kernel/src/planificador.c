@@ -7,11 +7,11 @@
 #include "inicializar.h"
 
 
-t_list* cola_new;
-t_list* cola_ready;
-t_list* cola_exit;
-t_list* cola_susp_ready;
-t_list* cola_susp_blocked;
+t_list* cola_new = NULL;
+t_list* cola_ready = NULL;
+t_list* cola_exit = NULL;
+t_list* cola_susp_ready = NULL;
+t_list* cola_susp_blocked = NULL;
 t_list* pcbs = NULL;  
 
 
@@ -146,8 +146,10 @@ void* planificador_largo_plazo(void* arg) {
             list_add(cola_ready, siguiente);
             pthread_mutex_unlock(&mutex_ready);
             sem_post(&sem_procesos_en_ready);  // Avisar al planificador corto plazo
+            sem_post(&sem_cpu_disponible);
 
             log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
+
         } else {
             log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
             // Dejarlo en NEW dependiento QUE

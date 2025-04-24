@@ -163,9 +163,9 @@ void operarCPU(int socket_cliente) {
                 agregar_string_a_paquete(respuesta, instruccion);
                 enviar_paquete(respuesta, socket_cliente);
                 eliminar_paquete(respuesta);
+                
 
-
-                break;
+            break;
 
             case LEER_PAGINA:
                 
