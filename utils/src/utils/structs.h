@@ -43,7 +43,10 @@ typedef enum {
     SYSCALL,
     INICIAR_IO,
     EJECUTAR_PROCESO,
-    PEDIR_INSTRUCCION
+    PEDIR_INSTRUCCION, 
+    CONTINUAR_PROCESO, 
+    DESALOJAR_PROCESO, 
+    CPU_LIBRE, 
 } t_opcode;
 
 typedef enum {

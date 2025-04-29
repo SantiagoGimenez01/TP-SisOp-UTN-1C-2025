@@ -1,11 +1,5 @@
-#include "sockets.h"
-#include "utils/libs/logger.h"
-#include "utils/libs/config.h"
-#include "utils/structs.h"
-#include <pthread.h>
-#include "conexiones.h"
-#include "inicializar.h"
 
+#include "conexiones.h"
 // --- Funciones auxiliares para cada puerto ---
 void comprobacionModulo(t_modulo modulo_origen, t_modulo esperado, char* modulo, void (*operacion)(int),int socket_cliente){
 
@@ -95,33 +89,46 @@ void establecerConexiones() {
     // El Kernel sigue ejecutando otras cosas mientras estos hilos aceptan clientes, cada uno tiene un bucle esperando muchas instancias
 }
 
-void conectar_con_memoria() { //ESTO ES DE PRUEBA, AHORA SI ANDA la conexion, PERO AL SER EFIMERA esta conexion la debemos de hacer en cada interaccion con memoria
- // Por lo tanto podriamos usar esta funcion como handshake pero a la vez englobarlo con otro para crear conexion y enviar el paquete deseado
- 
-    char* puerto_memoria = string_itoa(configKERNEL.puerto_memoria);
-    printf("IP_MEMORIA = %s\n", configKERNEL.ip_memoria);
-    printf("PUERTO_MEMORIA = %s\n", puerto_memoria);
 
-    int socket_memoria = crearConexion(configKERNEL.ip_memoria, puerto_memoria, logger);
-
-    free(puerto_memoria);
-
-    if (socket_memoria < 0) {
-        log_error(logger, "Error al conectar con Memoria.");
-        exit(EXIT_FAILURE);
-    }
-    log_info(logger, "Conexion establecida con Memoria.");
-
-    enviar_handshake(socket_memoria, MODULO_KERNEL);
-    log_info(logger, "Handshake enviado a Memoria.");
-
-    close(socket_memoria);
-}
 
 
 void operarDispatch(int socket_cliente) {
     log_info(logger, "Manejando conexion DISPATCH");
+
+    while (1) {
+        t_opcode codigo_operacion;
+        int status = recv(socket_cliente, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
+
+        if (status <= 0) {
+            log_warning(logger, "Se cerro la conexion con CPU Dispatch (socket %d)", socket_cliente);
+            close(socket_cliente);
+            return;
+        }
+
+        switch (codigo_operacion) {
+            case SYSCALL:
+                log_info(logger, "Se recibio una SYSCALL desde CPU (socket %d)", socket_cliente);
+                
+                t_paquete* paquete = recibir_paquete(socket_cliente);
+                procesar_syscall(paquete, socket_cliente);
+                eliminar_paquete(paquete);
+
+                break;
+
+            case CPU_LIBRE:
+                log_info(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
+                marcar_cpu_como_libre(socket_cliente); 
+                sem_post(&sem_cpu_disponible); 
+            break;
+
+            default:
+                log_warning(logger, "Codigo de operacion inesperado en DISPATCH: %d", codigo_operacion);
+                break;
+        }
+    }
 }
+
+
 
 void operarInterrupt(int socket_cliente) {
     log_info(logger, "Manejando conexion INTERRUPT");
@@ -157,3 +164,21 @@ void operarIo(int socket_cliente) {
 
 } // si hay muchos logs es para debbuggear que llgue todo bien, luego los borramos 
 
+
+   /*void manejar_fin_io(char* nombre_io) {
+    t_io* dispositivo = buscar_io_por_nombre(nombre_io);
+
+    if (!dispositivo) {
+        log_error(logger, "No se encontro IO %s al finalizar uso.", nombre_io);
+        return;
+    }
+
+    dispositivo->disponible = 1;
+    dispositivo->pid_actual = -1;
+
+    if (!queue_is_empty(dispositivo->cola_procesos)) {
+        t_pcb* siguiente = queue_pop(dispositivo->cola_procesos);
+        usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempo_io);
+    }
+}
+*/ // ESTO PARA LUEGO DE MANEJAR LA FINALIZACION DEL IO

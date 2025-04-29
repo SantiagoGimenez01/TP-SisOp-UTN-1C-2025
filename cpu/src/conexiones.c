@@ -80,6 +80,7 @@ void* escuchar_dispatch(void* arg) {
 
                 ejecutar_ciclo(pid, pc); 
 
+                enviar_opcode(CPU_LIBRE, socket_dispatch);
                 break;
 
             default:

@@ -3,6 +3,8 @@
 
 #include "utils/libs/config.h"
 #include "utils/libs/logger.h"
+#include "../../utils/src/utils/paquete.h"
+
 
 extern config_kernel_t configKERNEL;  //Esto por ahora lo pongo asi porque los tengo que usar en otro archivo, como conexiones.c pero creo que hay algo mejor
 extern t_log* logger;
@@ -21,7 +23,8 @@ typedef struct {
     char* nombre;             
     int socket;                
     int disponible;           
-    int pid_actual;            
+    int pid_actual; 
+    t_queue* cola_procesos;           
 } t_io;
 typedef enum {
     CORTO_PLAZO,

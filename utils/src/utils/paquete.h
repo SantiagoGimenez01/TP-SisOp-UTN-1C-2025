@@ -29,4 +29,7 @@ void eliminar_paquete(t_paquete* paquete);
 t_paquete* recibir_paquete(int socket_cliente);
 char* recibir_string_de_paquete(t_paquete* paquete);
 void enviar_opcode(t_opcode codigo, int socket);
+
+const char* nombre_syscall(t_instruccion_id id);
+
 #endif 

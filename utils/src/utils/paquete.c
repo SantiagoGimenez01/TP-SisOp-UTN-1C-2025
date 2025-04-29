@@ -84,3 +84,13 @@ char* recibir_string_de_paquete(t_paquete* paquete) {
 void enviar_opcode(t_opcode codigo, int socket) {
     send(socket, &codigo, sizeof(t_opcode), 0);
 }
+
+const char* nombre_syscall(t_instruccion_id id) {
+    switch (id) {
+        case IO: return "IO";
+        case INIT_PROC: return "INIT_PROC";
+        case DUMP_MEMORY: return "DUMP_MEMORY";
+        case EXIT: return "EXIT";
+        default: return "DESCONOCIDA";
+    }
+} // lo puse aca solo porque lo uso en 2 modulos

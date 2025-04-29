@@ -116,8 +116,8 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
         case INIT_PROC: 
         case DUMP_MEMORY:
         case EXIT:
-            enviar_syscall_a_kernel(inst, pid, *pc);
-            return false;  // termina el ciclo hasta que Kernel decida
+
+            return enviar_syscall_a_kernel(inst, pid, *pc);
             break;
 
         default:
@@ -128,7 +128,7 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
     return true;
 }
 
-void enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
+bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     log_info(logger, "CPU (PID %d): Deteniendo ejecucion por SYSCALL %s", pid, nombre_syscall(inst->id));
 
 
@@ -136,8 +136,10 @@ void enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     t_paquete* paquete = crear_paquete();
     agregar_int_a_paquete(paquete, inst->id);
     if(inst->id == IO){
-        int tiempo = atoi(inst->parametros[0]);
+        int tiempo = atoi(inst->parametros[1]);
+        char* nombre_io = inst->parametros[0];
         agregar_int_a_paquete(paquete, tiempo);
+        agregar_string_a_paquete(paquete, nombre_io);
     }
     if(inst->id == INIT_PROC){
         char* nombre_archivo = inst->parametros[0];
@@ -150,17 +152,27 @@ void enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     enviar_paquete(paquete, socket_dispatch);
     eliminar_paquete(paquete);
     
-}
+    t_opcode respuesta;
+    int bytes = recv(socket_dispatch, &respuesta, sizeof(t_opcode), MSG_WAITALL);
 
-const char* nombre_syscall(t_instruccion_id id) {
-    switch (id) {
-        case IO: return "IO";
-        case INIT_PROC: return "INIT_PROC";
-        case DUMP_MEMORY: return "DUMP_MEMORY";
-        case EXIT: return "EXIT";
-        default: return "DESCONOCIDA";
+    if (bytes <= 0) {
+        log_error(logger, "Error al recibir respuesta de Kernel en SYSCALL");
+        exit(EXIT_FAILURE);
+    }
+
+    if (respuesta == CONTINUAR_PROCESO) {
+        log_info(logger, "CPU (PID %d): Kernel indico CONTINUAR", pid);
+        return true;  // Sigue ejecutando
+    } else if (respuesta == DESALOJAR_PROCESO) {
+        log_info(logger, "CPU (PID %d): Kernel indico DESALOJO", pid);
+        return false; // Termina ejecutar_ciclo()
+    } else {
+        log_warning(logger, "CPU (PID %d): Respuesta inesperada de Kernel: %d", pid, respuesta);
+        return false;
     }
 }
+
+
 
 void liberar_instruccion(t_instruccion* inst) {
     for (int i = 0; i < inst->cantidad_parametros; i++) {

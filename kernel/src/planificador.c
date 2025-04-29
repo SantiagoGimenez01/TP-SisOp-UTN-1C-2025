@@ -7,21 +7,6 @@
 #include "inicializar.h"
 
 
-t_list* cola_new = NULL;
-t_list* cola_ready = NULL;
-t_list* cola_exit = NULL;
-t_list* cola_susp_ready = NULL;
-t_list* cola_susp_blocked = NULL;
-t_list* pcbs = NULL;  
-
-
-sem_t sem_procesos_en_new;
-pthread_mutex_t mutex_new = PTHREAD_MUTEX_INITIALIZER;
-
-sem_t sem_procesos_en_ready;
-sem_t sem_cpu_disponible;
-pthread_mutex_t mutex_ready = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_cpus = PTHREAD_MUTEX_INITIALIZER;
 
 
 extern config_kernel_t configKERNEL;
@@ -29,26 +14,16 @@ extern t_log* logger;
 
 uint32_t proximo_pid = 0;
 
-void inicializarEstados() {
-    cola_new = list_create();
-    cola_ready = list_create();
-    cola_exit = list_create();
-    cola_susp_ready = list_create();
-    cola_susp_blocked = list_create();
-    sem_init(&sem_procesos_en_new, 0, 0);
-    sem_init(&sem_procesos_en_ready, 0, 0);
-    sem_init(&sem_cpu_disponible, 0, 0);
 
-}
 
-// Agregar proceso a NEW
+/* Agregar proceso a NEW
 void encolar_en_new(t_pcb* nuevo_proceso) {
     pthread_mutex_lock(&mutex_new);
     list_add(cola_new, nuevo_proceso);
     pthread_mutex_unlock(&mutex_new);
     log_info(logger, "Proceso %d agregado a la cola NEW", nuevo_proceso->pid);
     sem_post(&sem_procesos_en_new); // Habilitar al planificador
-}
+}*/
 
 t_pcb* obtener_siguiente_de_new() {
     t_pcb* candidato = NULL;
@@ -142,11 +117,11 @@ void* planificador_largo_plazo(void* arg) {
 
         if (aceptado) {
             cambiar_estado(siguiente, READY);
-            pthread_mutex_lock(&mutex_ready);
-            list_add(cola_ready, siguiente);
-            pthread_mutex_unlock(&mutex_ready);
-            sem_post(&sem_procesos_en_ready);  // Avisar al planificador corto plazo
-            sem_post(&sem_cpu_disponible);
+            //pthread_mutex_lock(&mutex_ready);
+            //list_add(cola_ready, siguiente);
+            //pthread_mutex_unlock(&mutex_ready);
+            //sem_post(&sem_procesos_en_ready);  // Avisar al planificador corto plazo
+            sem_post(&sem_cpu_disponible); // esto no lo tengo que hacer aca solo cuando me instancio por primera vez! 
 
             log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
 
@@ -203,39 +178,7 @@ void iniciar_planificadores() {
 
 
 
-bool solicitar_espacio_a_memoria(t_pcb* pcb) {
-    char* puerto_memoria = string_itoa(configKERNEL.puerto_memoria);
-    int socket_memoria = crearConexion(configKERNEL.ip_memoria, puerto_memoria, logger);
-    free(puerto_memoria);
 
-    if (socket_memoria < 0) {
-        log_error(logger, "No se pudo conectar a Memoria para iniciar proceso %d", pcb->pid);
-        return false;
-    }
-
-    enviar_handshake(socket_memoria, MODULO_KERNEL);
-    enviar_opcode(INICIAR_PROCESO, socket_memoria);
-
-    t_paquete* paquete = crear_paquete();
-    agregar_int_a_paquete(paquete, pcb->pid);
-    agregar_int_a_paquete(paquete, pcb->tamanio);
-    agregar_string_a_paquete(paquete, pcb->archivo_pseudocodigo);
-    enviar_paquete(paquete, socket_memoria);
-    eliminar_paquete(paquete);
-
-    // Esperamos respuesta de MEMORIA
-    int cod_respuesta;
-    recv(socket_memoria, &cod_respuesta, sizeof(int), MSG_WAITALL);
-
-    bool aceptado = false;
-
-    if (cod_respuesta == RESPUESTA_OK) {
-        aceptado = true;
-    }
-
-    close(socket_memoria);
-    return aceptado;
-}
 
 void enviar_proceso(t_cpu* cpu, t_pcb* pcb) {
     t_paquete* paquete = crear_paquete();
@@ -260,3 +203,13 @@ void agregar_double_a_paquete(t_paquete* paquete, double valor) {
     paquete->buffer->size = nuevo_tamanio;
 }
 
+
+void finalizar_kernel() {
+    pthread_mutex_destroy(&mutex_new);
+    pthread_mutex_destroy(&mutex_ready);
+    pthread_mutex_destroy(&mutex_exit);
+    pthread_mutex_destroy(&mutex_susp_ready);
+    pthread_mutex_destroy(&mutex_susp_blocked);
+
+    //  destruir las listas y semaforos
+}
