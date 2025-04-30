@@ -136,29 +136,33 @@ void* planificador_largo_plazo(void* arg) {
 
 void* planificador_corto_plazo(void* arg) {
     while (1) {
-        // Espera hasta que haya al menos un proceso en READY
-        sem_wait(&sem_procesos_en_ready);
-        sem_wait(&sem_cpu_disponible); // me deja dudas por ahora
-        
-        t_cpu* cpu = obtener_cpu_libre();
+        // Esperar que haya al menos una CPU libre
+        sem_wait(&sem_cpu_disponible);
+        t_cpu* cpu = obtener_cpu_libre();  
 
-        // Obtener el siguiente proceso listo para ejecutar
-        t_pcb* proceso = obtener_siguiente_de_ready();
+        // Esperamos que haya al menos un proceso en READY
+        sem_wait(&sem_procesos_en_ready);
+        t_pcb* proceso = obtener_siguiente_de_ready();  
+
         if (!proceso) {
-            log_warning(logger, "No se encontro ningun proceso en READY (posible condición de carrera).");
+            log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
             cpu->disponible = true;
+            sem_post(&sem_cpu_disponible);  
             continue;
         }
 
-        // Marcar el cambio de estado y enviar el PCB
+        cpu->disponible = false;
+
         cambiar_estado(proceso, EXEC);
         enviar_opcode(EJECUTAR_PROCESO, cpu->socket_dispatch);
         enviar_proceso(cpu, proceso);
+
         log_info(logger, "Proceso %d enviado a ejecucion en CPU %d", proceso->pid, cpu->id);
     }
 
     return NULL;
 }
+
 
 
 
