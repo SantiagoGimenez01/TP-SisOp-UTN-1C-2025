@@ -170,7 +170,7 @@ void finalizar_proceso(t_pcb* pcb) {
 
     remover_pcb(pcb);
 
-    sem_post(&sem_procesos_en_new);
+    sem_post(&sem_procesos_en_new); // OJO CON ESTO, NO ME TENGO QUE OLVIDAR DE QUE PRIMERO VAN LOS SUSPREADY
 
     log_info(logger, "Proceso %d finalizado y recursos liberados.", pcb->pid);
 }

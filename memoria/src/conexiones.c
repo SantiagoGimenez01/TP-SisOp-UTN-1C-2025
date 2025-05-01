@@ -108,6 +108,57 @@ void operarKernel(int socket_cliente) {
             eliminar_paquete(paquete);
             break;
 
+        case DUMP_MEMORY: {
+            log_info(logger, "Se recibio solicitud de DUMP_MEMORY");
+
+            t_paquete* paquete = recibir_paquete(socket_cliente);
+            int pid;
+            memcpy(&pid, paquete->buffer->stream, sizeof(int));
+            eliminar_paquete(paquete);
+
+            t_proceso_en_memoria* proceso = buscar_proceso_por_pid(pid);
+            if (!proceso) {
+                log_warning(logger, "PID %d no encontrado para DUMP", pid);
+                int error = RESPUESTA_ERROR;
+                send(socket_cliente, &error, sizeof(int), 0);
+                break;
+            }
+
+            log_info(logger, "## PID: %d - Inicio de Dump", pid);
+            //generar_dump(pid)
+            //CREAR ARCHIVO y aca verificar si estuvo okey o hubo error
+
+            int ok = RESPUESTA_OK;
+            send(socket_cliente, &ok, sizeof(int), 0);
+            break;
+        }
+
+        case FINALIZAR_PROCESO: {
+            log_info(logger, "Se recibio solicitud de FINALIZAR_PROCESO");
+
+            t_paquete* paquete = recibir_paquete(socket_cliente);
+            int pid;
+            memcpy(&pid, paquete->buffer->stream, sizeof(int));
+            eliminar_paquete(paquete);
+
+            t_proceso_en_memoria* proceso = buscar_proceso_por_pid(pid);
+            if (!proceso) {
+                log_warning(logger, "PID %d no encontrado para finalizar", pid);
+                int error = RESPUESTA_ERROR; // NO DEBERIA PASAR
+                send(socket_cliente, &error, sizeof(int), 0);
+                break;
+            }
+            //log_metricas_proceso(proceso)
+            // Liberar estructuras
+            //liberar_proceso_en_memoria(proceso);
+            int ok = RESPUESTA_OK;
+            send(socket_cliente, &ok, sizeof(int), 0);
+            log_info(logger, "Memoria: PID %d finalizado correctamente", pid);
+            break;
+        }
+
+
+
         default:
             log_warning(logger, "Operacion desconocida del Kernel: %d", codigo_operacion);
             break;
