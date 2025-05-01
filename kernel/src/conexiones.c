@@ -138,47 +138,70 @@ void operarIo(int socket_cliente) {
     log_info(logger, "Registrando nuevo dispositivo IO...");
 
     t_opcode codOperacion;
-    int bytes_recibidos = recv(socket_cliente, &codOperacion, sizeof(t_opcode), MSG_WAITALL);
-    log_info(logger, "Bytes recibidos del opcode: %d", bytes_recibidos);
-    log_info(logger, "Codigo de operacion recibido: %d", codOperacion);
+    recv(socket_cliente, &codOperacion, sizeof(t_opcode), MSG_WAITALL);
 
     if (codOperacion != INICIAR_IO) {
         log_error(logger, "Operacion inesperada. Se esperaba INICIAR_IO.");
         close(socket_cliente);
         return;
     }
-
-    log_info(logger, "Esperando paquete...");
+    
     t_paquete* paquete = recibir_paquete(socket_cliente);
-
-    log_info(logger, "Paquete recibido, extrayendo nombre...");
     char* nombre_io = recibir_string_de_paquete(paquete);
-
-    log_info(logger, "Nombre de IO recibido: %s", nombre_io);
+    eliminar_paquete(paquete);
 
     agregarNuevaIo(nombre_io, socket_cliente);
-    log_info(logger, "IO agregado correctamente.");
-
+    log_info(logger, "IO %s registrado correctamente con socket %d", nombre_io, socket_cliente);
     free(nombre_io);
-    eliminar_paquete(paquete); 
 
-} // si hay muchos logs es para debbuggear que llgue todo bien, luego los borramos 
+    //recepcion de solicitudes
+    while (1) {
+        t_opcode op;
+        int recv_bytes = recv(socket_cliente, &op, sizeof(op), MSG_WAITALL);
+        if (recv_bytes <= 0) {
+            log_warning(logger, "Desconexion de IO (socket %d)", socket_cliente);
+            break;
+        }
 
+        switch (op) {
+            case FIN_IO: {
+                t_paquete* paquete = recibir_paquete(socket_cliente);
+                int pid;
+                memcpy(&pid, paquete->buffer->stream, sizeof(int));
+                eliminar_paquete(paquete);
 
-   /*void manejar_fin_io(char* nombre_io) {
-    t_io* dispositivo = buscar_io_por_nombre(nombre_io);
+                t_io* dispositivo = buscar_io_por_socket(socket_cliente);
+                if (!dispositivo) {
+                    log_error(logger, "No se pudo identificar el IO por socket %d", socket_cliente);
+                    break;
+                }
 
-    if (!dispositivo) {
-        log_error(logger, "No se encontro IO %s al finalizar uso.", nombre_io);
-        return;
+                log_info(logger, "Fin de IO: %s recibido del PID %d", dispositivo->nombre, pid);
+
+                dispositivo->disponible = 1;
+                dispositivo->pid_actual = -1;
+
+                t_pcb* pcb = buscar_pcb_por_pid(pid);
+                if (pcb) {
+                    cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
+                    pcb->tiempoIO = -1;
+                    sem_post(&sem_procesos_en_ready);
+                }
+
+                if (!queue_is_empty(dispositivo->cola_procesos)) {
+                    t_pcb* siguiente = queue_pop(dispositivo->cola_procesos);
+                    usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempoIO);
+                }
+
+                break;
+            }
+
+            default:
+                log_warning(logger, "IO recibio opcode inesperado: %d", op);
+                break;
+        }
     }
 
-    dispositivo->disponible = 1;
-    dispositivo->pid_actual = -1;
-
-    if (!queue_is_empty(dispositivo->cola_procesos)) {
-        t_pcb* siguiente = queue_pop(dispositivo->cola_procesos);
-        usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempo_io);
-    }
+    close(socket_cliente);
 }
-*/ // ESTO PARA LUEGO DE MANEJAR LA FINALIZACION DEL IO
+

@@ -31,4 +31,50 @@ void establecerConexiones(char* nombre_IO) {
     free(puerto_kernel);
 }
 
+void escuchar_pedidos_io() {
+    while (1) {
+        t_opcode codigo_operacion;
+        int recibidos = recv(socket_kernel, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
+
+        if (recibidos <= 0) {
+            log_error(logger, "Se cerro la conexion con el Kernel.");
+            break;
+        }
+
+        switch (codigo_operacion) {
+            case SOLICITUD_IO: {
+                // Recibir paquete con PID y tiempo
+                t_paquete* paquete = recibir_paquete(socket_kernel);
+                int offset = 0;
+
+                int pid;
+                memcpy(&pid, paquete->buffer->stream + offset, sizeof(int));
+                offset += sizeof(int);
+
+                int tiempo;
+                memcpy(&tiempo, paquete->buffer->stream + offset, sizeof(int));
+
+                eliminar_paquete(paquete);
+
+                log_info(logger, "## PID: %d - Inicio de IO - Tiempo: %d", pid, tiempo);
+                usleep(tiempo * 1000);  // Convertimos a microsegundos, me deja dudas si esto va con el 1000
+
+                log_info(logger, "## PID: %d - Fin de IO", pid);
+
+                enviar_opcode(FIN_IO, socket_kernel);
+                t_paquete* respuesta = crear_paquete();
+                agregar_int_a_paquete(respuesta, pid);
+                enviar_paquete(respuesta, socket_kernel);
+                eliminar_paquete(respuesta);
+
+                break;
+            }
+
+            default:
+                log_warning(logger, "Opcode desconocido recibido en IO: %d", codigo_operacion);
+                break;
+        }
+    }
+}
+
 

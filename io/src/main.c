@@ -13,8 +13,7 @@ int main(int argc, char* argv[]) { // ACA TENEMOS QUE LABURAR CON LOS ARGUMENTOS
 
     cargarConfiguracionIO("io.config", &configIO, &logger);
     establecerConexiones(nombre_io);
-    while(1){
-        usleep(1);
-    }
+    escuchar_pedidos_io();
+
     return 0;
 }

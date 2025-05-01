@@ -124,6 +124,17 @@ t_io* buscar_io_por_nombre(char* nombre_io) {
     return NULL;
 }
 
+t_io* buscar_io_por_socket(int socket) {
+    for (int i = 0; i < list_size(ios); i++) {
+        t_io* dispositivo = list_get(ios, i);
+        if (dispositivo->socket == socket) {
+            return dispositivo;
+        }
+    }
+    return NULL;
+}
+
+
 void usar_o_encolar_io(t_io* dispositivo, t_pcb* pcb, int tiempo) {
     
     if (dispositivo->disponible) {
@@ -142,7 +153,7 @@ void usar_o_encolar_io(t_io* dispositivo, t_pcb* pcb, int tiempo) {
         eliminar_paquete(paquete);
 
     } else {
-        
+        pcb->tiempoIO = tiempo;
         queue_push(dispositivo->cola_procesos, pcb);
         log_info(logger, "Proceso %d encolado esperando IO %s.", pcb->pid, dispositivo->nombre);
     }

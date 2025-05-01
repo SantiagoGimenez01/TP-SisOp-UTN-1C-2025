@@ -47,6 +47,7 @@ typedef enum {
     CONTINUAR_PROCESO, 
     DESALOJAR_PROCESO, 
     CPU_LIBRE, 
+    FIN_IO
 } t_opcode;
 
 typedef enum {
@@ -88,6 +89,7 @@ typedef struct {
     double estimacion_rafaga;   // Para SJF
     double rafaga_real;         // Para actualizar estimacion       
     char* archivo_pseudocodigo;
+    int tiempoIO;
 } t_pcb;
 
 
