@@ -10,7 +10,7 @@
 
 #include "utils/paquete.h"     
 #include "utils/structs.h"     
-#include "globales.h"  
+#include "componentes.h"  
 
 typedef struct {
     t_instruccion_id id;

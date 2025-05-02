@@ -5,6 +5,9 @@
 #include "conexiones.h"
 #include "globales.h"
 
+int tam_pagina = 0;
+int cant_entradas_por_tabla = 0;
+int cantidad_niveles = 0;
 
 void comprobarSocket(int socket, char* modulo){
     if(socket == -1){
@@ -25,6 +28,22 @@ void establecerConexiones(int id_cpu) {
     enviar_handshake(socket_memoria, MODULO_CPU_DISPATCH);
     send(socket_memoria, &id_cpu, sizeof(int), 0);
     log_info(logger, "ID de CPU enviado a Memoria: %d", id_cpu);
+    enviar_opcode(PEDIR_CONFIGURACION, socket_memoria);
+
+    t_paquete* paquete_config = recibir_paquete(socket_memoria);
+    int offset = 0;
+
+    memcpy(&tam_pagina, paquete_config->buffer->stream + offset, sizeof(int));
+    offset += sizeof(int);
+    memcpy(&cant_entradas_por_tabla, paquete_config->buffer->stream + offset, sizeof(int));
+    offset += sizeof(int);
+    memcpy(&cantidad_niveles, paquete_config->buffer->stream + offset, sizeof(int));
+    offset += sizeof(int);
+
+    eliminar_paquete(paquete_config);
+    log_info(logger, "Configuracion recibida: TamPagina=%d, CantEntradas=%d, CantNiveles=%d",
+             tam_pagina, cant_entradas_por_tabla, cantidad_niveles);
+
 
     // Conexion persistente a KERNEL - DISPATCH
     socket_dispatch = crearConexion(configCPU.ip_kernel, puerto_dispatch, logger);

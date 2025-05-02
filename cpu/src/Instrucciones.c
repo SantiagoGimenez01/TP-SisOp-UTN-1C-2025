@@ -93,8 +93,63 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
         case READ: {
             int direccion = atoi(inst->parametros[0]);
             int tamanio = atoi(inst->parametros[1]);
-            log_info(logger, "CPU (PID %d): READ en direccion %d, tamaño %d", pid, direccion, tamanio);
-            // TODO
+            log_info(logger, "CPU (PID %d): READ en direccion %d, tamanio %d", pid, direccion, tamanio);
+
+            uint32_t nro_pagina = direccion / tam_pagina;
+            uint32_t desplazamiento = direccion % tam_pagina;
+
+            char* contenido = NULL;
+
+            // 1 Cache (si esta habilitada)
+            if (configCPU.entradas_cache > 0) {
+                t_entrada_cache* entrada_cache = buscar_en_cache(nro_pagina);
+                if (entrada_cache) {
+                    log_info(logger, "PID: %d - Cache Hit - Pagina: %d", pid, nro_pagina);
+                    contenido = extraer_fragmento_con_desplazamiento(entrada_cache->contenido, desplazamiento, tamanio);
+                    log_info(logger, "Contenido leido desde Cache: %s", contenido);
+                    free(contenido);
+                    break;
+                } else {
+                    log_info(logger, "PID: %d - Cache Miss - Pagina: %d", pid, nro_pagina);
+                }
+            }
+
+            // 2 TLB (si esta habilitada)
+            int marco = -1;
+            if (configCPU.entradas_tlb > 0) {
+                t_entrada_tlb* entrada_tlb = buscar_en_tlb(nro_pagina);
+                if (entrada_tlb) {
+                    log_info(logger, "PID: %d - TLB HIT - Pagina: %d", pid, nro_pagina);
+                    marco = entrada_tlb->marco;
+                } else {
+                    log_info(logger, "PID: %d - TLB MISS - Pagina: %d", pid, nro_pagina);
+                }
+            }
+
+            //3 MMU (solo si no encontro en la TLB)
+            if (marco == -1) {
+                t_direccion_fisica* dir = traducir_direccion_logica(direccion); 
+                marco = pedir_marco_a_memoria(pid, dir); 
+                log_info(logger, "PID: %d - OBTENER MARCO - Pagina: %d - Marco: %d", pid, nro_pagina, marco);
+                agregar_a_tlb(nro_pagina, marco);
+                free(dir->entradas_niveles);
+                free(dir);
+            }
+
+            if (configCPU.entradas_cache > 0) {
+                // Cache habilitada, traigo pagina entera
+                char* pagina_completa = pedir_contenido_de_pagina(pid, marco);
+                contenido = extraer_fragmento_con_desplazamiento(pagina_completa, desplazamiento, tamanio);
+                log_info(logger, "Contenido leido desde Memoria: %s", contenido);
+                agregar_a_cache(nro_pagina, pagina_completa);
+                log_info(logger, "PID: %d - Cache Add - Pagina: %d", pid, nro_pagina);
+                free(pagina_completa);
+            } else {
+                // Cache deshabilitada, pido solo el fragmento
+                contenido = pedir_fragmento_de_memoria(pid, marco, desplazamiento, tamanio);
+                log_info(logger, "Contenido leido desde Memoria: %s", contenido);
+            }
+            free(contenido);
             break;
         }
 
@@ -102,10 +157,61 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
             int direccion = atoi(inst->parametros[0]);
             char* datos = inst->parametros[1];
             log_info(logger, "CPU (PID %d): WRITE en direccion %d, datos: %s", pid, direccion, datos);
-            // TODO
+
+            uint32_t nro_pagina = direccion / tam_pagina;
+            uint32_t desplazamiento = direccion % tam_pagina;
+
+            //1 Si la cache esta habilitada
+            if (configCPU.entradas_cache > 0) {
+                t_entrada_cache* entrada_cache = buscar_en_cache(nro_pagina);
+                if (entrada_cache) {
+                    log_info(logger, "PID: %d - Cache Hit - Pagina: %d", pid, nro_pagina);
+                    escribir_en_cache(nro_pagina, desplazamiento, datos);
+                    entrada_cache->modificado = true;
+                    break;
+                } else {
+                    log_info(logger, "PID: %d - Cache Miss - Pagina: %d", pid, nro_pagina);
+                }
+            }
+
+            // 2 Buscar en TLB (si esta habilitada)
+            int marco = -1;
+            if (configCPU.entradas_tlb > 0) {
+                t_entrada_tlb* entrada_tlb = buscar_en_tlb(nro_pagina);
+                if (entrada_tlb) {
+                    log_info(logger, "PID: %d - TLB HIT - Pagina: %d", pid, nro_pagina);
+                    marco = entrada_tlb->marco;
+                } else {
+                    log_info(logger, "PID: %d - TLB MISS - Pagina: %d", pid, nro_pagina);
+                }
+            }
+
+            // 3 Si no estaba en la TLB, usar MMU para obtener el marco
+            if (marco == -1) {
+                t_direccion_fisica* dir = traducir_direccion_logica(direccion);
+                marco = pedir_marco_a_memoria(pid, dir);
+                log_info(logger, "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pid, nro_pagina, marco);
+                agregar_a_tlb(nro_pagina, marco);
+                free(dir->entradas_niveles);
+                free(dir);
+            }
+
+            // 4 Si cache esta habilitada, traer pagina completa y modificar
+            if (configCPU.entradas_cache > 0) {
+                char* pagina_completa = pedir_contenido_de_pagina(pid, marco);
+                escribir_fragmento_en_pagina(pagina_completa, desplazamiento, datos);
+                agregar_a_cache(nro_pagina, pagina_completa);  
+                marcar_modificada_en_cache(nro_pagina);
+                log_info(logger, "PID: %d - Cache Add - Pagina: %d", pid, nro_pagina);
+                free(pagina_completa);
+            } else {
+                //5. Cache deshabilitada, escribir directamente en Memoria
+                escribir_en_memoria(pid, marco, desplazamiento, datos);
+                log_info(logger, "PID: %d - WRITE directo a Memoria", pid);
+            }
+
             break;
         }
-
         case GOTO: {
             *pc = atoi(inst->parametros[0]);
             log_info(logger, "CPU (PID %d): GOTO a PC %d", pid, *pc);
@@ -117,7 +223,7 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
         case DUMP_MEMORY:
         case EXIT:
 
-            return enviar_syscall_a_kernel(inst, pid, *pc);
+            return enviar_syscall_a_kernel(inst, pid, *pc); // TENGO QUE PROBAR ESTO PARA QUE SUME en caso de que se haya desalojado, HAY QUE PROBAR
             break;
 
         default:
@@ -135,6 +241,8 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     enviar_opcode(SYSCALL, socket_dispatch);
     t_paquete* paquete = crear_paquete();
     agregar_int_a_paquete(paquete, inst->id);
+    agregar_int_a_paquete(paquete, pid);
+    agregar_int_a_paquete(paquete, pc); //ESTOY EN DUDAS POR AHORA
     if(inst->id == IO){
         int tiempo = atoi(inst->parametros[1]);
         char* nombre_io = inst->parametros[0];
@@ -147,8 +255,7 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
         agregar_string_a_paquete(paquete, nombre_archivo);
         agregar_int_a_paquete(paquete, tamanio);
     }
-    agregar_int_a_paquete(paquete, pid);
-    agregar_int_a_paquete(paquete, pc); //ESTOY EN DUDAS POR AHORA
+    
     enviar_paquete(paquete, socket_dispatch);
     eliminar_paquete(paquete);
     

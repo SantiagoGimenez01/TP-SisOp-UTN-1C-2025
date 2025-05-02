@@ -37,7 +37,7 @@ void inicializarEstados() {
     cola_exit = list_create();
     cola_susp_ready = list_create();
     cola_susp_blocked = list_create();
-
+    pcbs = list_create();
     sem_init(&sem_procesos_en_new, 0, 0);
     sem_init(&sem_procesos_en_ready, 0, 0);
     sem_init(&sem_cpu_disponible, 0, 0);
@@ -120,7 +120,8 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
     nuevo_pcb->tiempoIO = -1;
     
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
-
+    list_add(pcbs, nuevo_pcb);
+    log_info(logger, "Se agrego un proceso a la lista de PCBS, TAM LISTA: %d", list_size(pcbs));
     //encolar_en_new(nuevo_pcb);
     cambiar_estado(nuevo_pcb, NEW);
 }

@@ -1,7 +1,7 @@
 #ifndef CONEXIONES_H
 #define CONEXIONES_H
 #include "globales.h"
-#include "utils/paquete.h"
+
 #include "Instrucciones.h"
 void establecerConexiones(int id_cpu);
 void escucharOperaciones();

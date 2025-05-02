@@ -179,6 +179,20 @@ void operarCPU(int socket_cliente) {
         }
 
         switch (opcode) {
+            case PEDIR_CONFIGURACION: {
+                log_info(logger, "CPU solicita configuracion de memoria");
+
+                t_paquete* paquete = crear_paquete();
+                agregar_int_a_paquete(paquete, configMEMORIA.tam_pagina);
+                agregar_int_a_paquete(paquete, configMEMORIA.entradas_por_tabla);
+                agregar_int_a_paquete(paquete, configMEMORIA.cantidad_niveles);
+
+                enviar_paquete(paquete, socket_cliente);
+                eliminar_paquete(paquete);
+
+                break;
+            }
+
             case PEDIR_INSTRUCCION:
                 log_info(logger, "Se recibio PEDIR_INSTRUCCION desde CPU");
                 t_paquete* paquete = recibir_paquete(socket_cliente);
