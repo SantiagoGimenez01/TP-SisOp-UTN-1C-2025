@@ -143,7 +143,7 @@ void usar_o_encolar_io(t_io* dispositivo, t_pcb* pcb, int tiempo) {
     
     if (dispositivo->disponible) {
 
-        dispositivo->disponible = 0;
+        dispositivo->disponible = false;
         dispositivo->pid_actual = pcb->pid;
         
         log_info(logger, "Proceso %d usando IO %s inmediatamente.", pcb->pid, dispositivo->nombre);

@@ -97,7 +97,7 @@ void agregarNuevaIo(char* nombre, int socket_cliente) {
     t_io* nueva_io = malloc(sizeof(t_io));
     nueva_io->nombre = strdup(nombre);  
     nueva_io->socket = socket_cliente;
-    nueva_io->disponible = 1;         
+    nueva_io->disponible = true;         
     nueva_io->cola_procesos = queue_create();
 
     list_add(ios, nueva_io);

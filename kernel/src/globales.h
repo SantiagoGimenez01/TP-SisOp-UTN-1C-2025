@@ -22,7 +22,7 @@ typedef struct {
 typedef struct {
     char* nombre;             
     int socket;                
-    int disponible;           
+    bool disponible;           
     int pid_actual; 
     t_queue* cola_procesos;           
 } t_io;
