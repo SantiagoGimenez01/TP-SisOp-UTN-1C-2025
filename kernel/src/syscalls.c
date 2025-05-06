@@ -34,7 +34,7 @@ void procesar_syscall(t_paquete* paquete, int socket_cpu) {
         }
 
         case INIT_PROC: {
-            char* nombre_archivo = recibir_string_de_paquete(paquete);
+            char* nombre_archivo = recibir_string_de_paquete_con_offset(paquete, &offset);
             int tamanio;
             memcpy(&tamanio, paquete->buffer->stream + offset, sizeof(int));
             offset += sizeof(int);
@@ -109,7 +109,9 @@ void atender_syscall_dump_memory(t_pcb* pcb, int socket_cpu) {
 
 
 void atender_syscall_exit(t_pcb* pcb, int socket_cpu) {
+
     cambiar_estado(pcb, EXIT);
+    log_info(logger, "Se envia al socket %d el desalojo", socket_cpu);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
     finalizar_proceso(pcb);
 }

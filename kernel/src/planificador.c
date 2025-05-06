@@ -127,7 +127,7 @@ void* planificador_largo_plazo(void* arg) {
             //list_add(cola_ready, siguiente);
             //pthread_mutex_unlock(&mutex_ready);
             //sem_post(&sem_procesos_en_ready);  // Avisar al planificador corto plazo
-            sem_post(&sem_cpu_disponible); // esto no lo tengo que hacer aca solo cuando me instancio por primera vez! 
+            //sem_post(&sem_cpu_disponible); // esto no lo tengo que hacer aca solo cuando me instancio por primera vez! 
 
             log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
 

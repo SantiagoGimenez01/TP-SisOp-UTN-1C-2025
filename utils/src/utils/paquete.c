@@ -70,6 +70,20 @@ char* recibir_string_de_paquete(t_paquete* paquete) {
     return str;
 }
 
+char* recibir_string_de_paquete_con_offset(t_paquete* paquete, int* offset) {
+    uint32_t longitud;
+    memcpy(&longitud, paquete->buffer->stream + *offset, sizeof(uint32_t));
+    *offset += sizeof(uint32_t);
+
+    char* str = malloc(longitud + 1);
+    memcpy(str, paquete->buffer->stream + *offset, longitud);
+    *offset += longitud;
+
+    str[longitud] = '\0';
+    return str;
+}
+
+
 /*char* recibir_string_de_paquete(t_paquete* paquete) {
     uint32_t size;
     memcpy(&size, paquete->buffer->stream, sizeof(uint32_t));

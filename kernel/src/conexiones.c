@@ -45,7 +45,7 @@ void* escuchar_interrupt(void* socket_servidor_void) {
         log_info(logger, "CPU ID recibido: %d en socket FD: %d", id_cpu, socket_cliente);
         agregarNuevaCpu(socket_cliente, id_cpu); // Terminamos de completar la nueva CPU 
         log_info(logger, "CPUs incompletas: %d, CPUs completas: %d", list_size(cpus_incompletas), list_size(cpus));
-
+        sem_post(&sem_cpu_disponible);
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
         comprobacionModulo(modulo_origen, MODULO_CPU_INTERRUPT, "CPU_INTERRUPT", operarInterrupt, socket_cliente);
@@ -118,7 +118,7 @@ void operarDispatch(int socket_cliente) {
             case CPU_LIBRE:
                 log_info(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
                 marcar_cpu_como_libre(socket_cliente); 
-                sem_post(&sem_cpu_disponible); 
+                //sem_post(&sem_cpu_disponible); 
             break;
 
             default:

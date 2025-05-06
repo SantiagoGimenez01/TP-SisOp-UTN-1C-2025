@@ -253,6 +253,7 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
         char* nombre_archivo = inst->parametros[0];
         int tamanio = atoi(inst->parametros[1]);
         agregar_string_a_paquete(paquete, nombre_archivo);
+        log_info(logger, "Se agrego el nombre archivo: %s  y el tamanio %d al paquete", nombre_archivo, tamanio);
         agregar_int_a_paquete(paquete, tamanio);
     }
     
