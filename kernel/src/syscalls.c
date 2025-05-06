@@ -20,10 +20,10 @@ void procesar_syscall(t_paquete* paquete, int socket_cpu) {
 
     switch (syscall_id) {
         case IO: {
+            char* nombre_io = recibir_string_de_paquete_con_offset(paquete, &offset);
             int tiempo;
             memcpy(&tiempo, paquete->buffer->stream + offset, sizeof(int));
             offset += sizeof(int);
-            char* nombre_io = recibir_string_de_paquete(paquete);
 
             log_info(logger, "SYSCALL IO: Proceso %d requiere IO %s por %d ms", pid, nombre_io, tiempo);
 
@@ -77,9 +77,11 @@ void atender_syscall_io(t_pcb* pcb, char* nombre_io, int tiempo, int socket_cpu)
         finalizar_proceso(pcb); 
         return;
     }
-    
+    log_info(logger, "El nombre del dispositivo que se esta atendiendo es %s", dispositivo->nombre);
     cambiar_estado(pcb, BLOCKED);
+    log_info(logger, "El proceso %d ahora esta bloqueado por %d segundos", pcb->pid, tiempo);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
+    log_info(logger, "El proceso %d se desalojo", pcb->pid);
     usar_o_encolar_io(dispositivo, pcb, tiempo);
 }
 

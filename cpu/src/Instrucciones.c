@@ -246,8 +246,9 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     if(inst->id == IO){
         int tiempo = atoi(inst->parametros[1]);
         char* nombre_io = inst->parametros[0];
-        agregar_int_a_paquete(paquete, tiempo);
+        log_info(logger, "Es una SYSCALL IO, nombre del dispositivo: %s", nombre_io);
         agregar_string_a_paquete(paquete, nombre_io);
+        agregar_int_a_paquete(paquete, tiempo);
     }
     if(inst->id == INIT_PROC){
         char* nombre_archivo = inst->parametros[0];

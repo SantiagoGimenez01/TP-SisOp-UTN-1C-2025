@@ -35,6 +35,7 @@ void inicializarEstados() {
     cola_new = list_create();
     cola_ready = list_create();
     cola_exit = list_create();
+    cola_blocked = list_create();
     cola_susp_ready = list_create();
     cola_susp_blocked = list_create();
     pcbs = list_create();
@@ -129,20 +130,23 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
 void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     uint64_t ahora = get_timestamp();
     uint64_t duracion = ahora - pcb->momento_entrada_estado;
-
+    log_info(logger, "La duracion es %ld", duracion);
     t_metricas_estado* metrica = buscar_o_crear_metrica(pcb->metricas, pcb->estado_actual);
     metrica->cantVeces++;
     metrica->tiempoTotal += duracion;
 
     // Remover PCB de su cola anterior
     remover_de_cola(pcb, pcb->estado_actual);
+    log_info(logger, "PCB removido de la cola actual");
 
     // Actualizar estado
     pcb->estado_actual = nuevo_estado;
     pcb->momento_entrada_estado = ahora;
+    log_info(logger, "Cambio de estado del pcb a");
 
     // Agregar a la nueva cola
     agregar_a_cola(pcb, nuevo_estado);
+    log_info(logger, "PCB agegado a la nueva cola");
 
     log_info(logger, "## (%d) Pasa del estado %s al estado %s", 
              pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
@@ -202,6 +206,7 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
         case BLOCKED:
             pthread_mutex_lock(&mutex_blocked);
             list_add(cola_blocked, pcb);
+            log_info(logger, "PID: %d, Se agrego a lista BLOCKED", pcb->pid);
             pthread_mutex_unlock(&mutex_blocked);
             break;
         case SUSP_READY:
