@@ -38,19 +38,22 @@ t_pcb* obtener_siguiente_de_new() {
     if (strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0) {
         candidato = list_remove(cola_new, 0);  //Debate que tengo
     } else {
-        int index_mas_chico = 0;
-        for (int i = 1; i < list_size(cola_new); i++) {
-            t_pcb* actual = list_get(cola_new, i);
-            t_pcb* menor_actual = list_get(cola_new, index_mas_chico);
-            if (actual->tamanio < menor_actual->tamanio) {
-                index_mas_chico = i;
-            }
-        }
-        candidato = list_remove(cola_new, index_mas_chico);
+        int indexMasChico = 0; //El proceso mas chico comienza siendo el 1ro de la lista
+        obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); //Obtenemos la posicion del verdadero proceso mas chico
+        candidato = list_remove(cola_new, indexMasChico); //Seleccionamos el mas chico y lo sacamos de new
     }
 
     pthread_mutex_unlock(&mutex_new);
     return candidato;
+}
+
+void obtenerIndiceDeProcesoMasChico(t_list* cola_new, int* indexMasChico){
+    for(int i = 1; i < list_size(cola_new); i++){
+        t_pcb* actual = list_get(cola_new, i);
+        t_pcb* menor_actual = list_get(cola_new, *indexMasChico);
+        if(actual->tamanio < menor_actual->tamanio)
+            *indexMasChico = i;
+    }
 }
 
 t_pcb* obtener_siguiente_de_ready() {
@@ -66,21 +69,24 @@ t_pcb* obtener_siguiente_de_ready() {
     if (strcmp(configKERNEL.algoritmo_planificacion, "FIFO") == 0) {
         proceso = list_remove(cola_ready, 0); //HACER BIEN 
     } else if (strcmp(configKERNEL.algoritmo_planificacion, "SJF") == 0) {
-        int index_menor = 0;
-        for (int i = 1; i < list_size(cola_ready); i++) {
-            t_pcb* actual = list_get(cola_ready, i);
-            t_pcb* menor = list_get(cola_ready, index_menor);
-            if (actual->estimacion_rafaga < menor->estimacion_rafaga) { // Hay que delegar
-                index_menor = i;
-            }
-        }
-        proceso = list_remove(cola_ready, index_menor); 
+        int indexMasCorto = 0;
+        obtenerIndiceDeProcesoMasCorto(cola_ready, &indexMasCorto);
+        proceso = list_remove(cola_ready, indexMasCorto); 
     } else { // FALTA SRT
         log_error(logger, "Algoritmo de planificacion desconocido: %s", configKERNEL.algoritmo_planificacion);
     }
 
     pthread_mutex_unlock(&mutex_ready);
     return proceso;
+}
+
+void obtenerIndiceDeProcesoMasCorto(t_list* cola_ready, int* indexMasCorto){
+    for(int i = 1; i < list_size(cola_ready); i++){
+        t_pcb* actual = list_get(cola_ready, i);
+        t_pcb* menor_actual = list_get(cola_ready, *indexMasCorto);
+        if(actual->estimacion_rafaga < menor_actual->estimacion_rafaga)
+            *indexMasCorto = i;
+    }
 }
 
 t_cpu* obtener_cpu_libre() {
@@ -135,6 +141,9 @@ void* planificador_largo_plazo(void* arg) {
 }
 
 void* planificador_corto_plazo(void* arg) {
+
+    log_info(logger, "Planifiacion de corto plazo iniciada");
+
     while (1) {
         // Esperar que haya al menos una CPU libre
         sem_wait(&sem_cpu_disponible);

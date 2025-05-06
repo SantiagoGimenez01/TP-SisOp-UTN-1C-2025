@@ -167,12 +167,12 @@ void finalizar_proceso(t_pcb* pcb) {
     }
 
     loguear_metricas_estado(pcb);
-
+    
     remover_pcb(pcb);
 
     sem_post(&sem_procesos_en_new); // OJO CON ESTO, NO ME TENGO QUE OLVIDAR DE QUE PRIMERO VAN LOS SUSPREADY
 
-    log_info(logger, "Proceso %d finalizado y recursos liberados.", pcb->pid);
+
 }
 
 
@@ -195,5 +195,6 @@ void remover_pcb(t_pcb* pcb) {
 
     list_destroy_and_destroy_elements(pcb->metricas, free);
     free(pcb->archivo_pseudocodigo);
+    log_info(logger, "Proceso %d finalizado y recursos liberados.", pcb->pid);
     free(pcb);
 }

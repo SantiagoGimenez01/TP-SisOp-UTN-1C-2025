@@ -18,5 +18,7 @@ bool solicitar_espacio_a_memoria(t_pcb* pcb);
 t_pcb* obtener_siguiente_de_ready();
 t_cpu* obtener_cpu_libre();
 void enviar_proceso(t_cpu* cpu, t_pcb* pcb);
+void obtenerIndiceDeProcesoMasChico(t_list* cola_new, int* indexMasChico);
+void obtenerIndiceDeProcesoMasCorto(t_list* cola_ready, int* indexMasCorto);
 
 #endif
