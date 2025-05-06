@@ -97,7 +97,7 @@ void agregarNuevaIo(char* nombre, int socket_cliente) {
     t_io* nueva_io = malloc(sizeof(t_io));
     nueva_io->nombre = strdup(nombre);  
     nueva_io->socket = socket_cliente;
-    nueva_io->disponible = 0;         
+    nueva_io->disponible = 1;         
     nueva_io->cola_procesos = queue_create();
 
     list_add(ios, nueva_io);
@@ -143,11 +143,13 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     pcb->estado_actual = nuevo_estado;
     pcb->momento_entrada_estado = ahora;
     log_info(logger, "Cambio de estado del pcb a");
-
+    if(nuevo_estado == BLOCKED){
+        pcb->pc++;
+    }
     // Agregar a la nueva cola
     agregar_a_cola(pcb, nuevo_estado);
     log_info(logger, "PCB agegado a la nueva cola");
-
+    
     log_info(logger, "## (%d) Pasa del estado %s al estado %s", 
              pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
 }
