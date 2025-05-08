@@ -51,6 +51,7 @@ config_kernel_t load_config_kernel(t_config* config) {
     configKernel.algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
     configKernel.algoritmo_cola_new = config_get_string_value(config, "ALGORITMO_COLA_NEW");
     configKernel.alfa = config_get_double_value(config, "ALFA");  // o config_get_string_value y parsear a double si falla
+    configKernel.estimacion_inicial = config_get_int_value(config, "ESTIMACION_INICIAL");
     configKernel.tiempo_suspension = config_get_int_value(config, "TIEMPO_SUSPENSION");
     configKernel.log_level = get_log_level(config);
 

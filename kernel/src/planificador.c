@@ -120,7 +120,7 @@ void* planificador_largo_plazo(void* arg) {
         if (!siguiente) continue;
 
         bool aceptado = solicitar_espacio_a_memoria(siguiente);
-
+        log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
         if (aceptado) {
             cambiar_estado(siguiente, READY);
             //pthread_mutex_lock(&mutex_ready);
@@ -203,7 +203,7 @@ void enviar_proceso(t_cpu* cpu, t_pcb* pcb) {
     enviar_paquete(paquete, cpu->socket_dispatch);
     eliminar_paquete(paquete);
 
-    log_info(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%.2f", 
+    log_info(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d", 
              cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga);
 }
 

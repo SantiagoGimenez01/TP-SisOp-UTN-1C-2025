@@ -89,8 +89,9 @@ typedef struct {
     t_estado_proceso estado_actual;
     uint64_t momento_entrada_estado;
     t_list* metricas; // Lista de t_metricas_estado*
-    double estimacion_rafaga;   // Para SJF
-    double rafaga_real;         // Para actualizar estimacion       
+    uint32_t estimacion_rafaga;   // Para SJF
+    uint32_t rafaga_real;         // Para actualizar estimacion
+    uint32_t rafaga_anterior;       
     char* archivo_pseudocodigo;
     int tiempoIO;
 } t_pcb;

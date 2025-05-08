@@ -48,7 +48,8 @@ typedef struct {
     uint32_t puerto_escucha_io;
     char* algoritmo_planificacion;  // FIFO, SJF, SRT
     char* algoritmo_cola_new;       // FIFO, PMCP
-    double alfa;                    // Para SJF 
+    double alfa;                    // Para SJF
+    uint32_t estimacion_inicial;    //Para SJF/SRT
     uint32_t tiempo_suspension;      // en milisegundos
     t_log_level log_level;
 } config_kernel_t;
