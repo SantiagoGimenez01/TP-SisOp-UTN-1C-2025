@@ -136,6 +136,11 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     metrica->cantVeces++;
     metrica->tiempoTotal += duracion;
 
+    if(pcb->estado_actual == EXEC){
+        pcb->rafaga_anterior = duracion;
+        log_info(logger, "## (%d): Rafaga anterior = %dms", pcb->pid, pcb->rafaga_anterior);
+    }
+
     // Remover PCB de su cola anterior
     remover_de_cola(pcb, pcb->estado_actual);
     //log_info(logger, "PCB removido de la cola actual");
