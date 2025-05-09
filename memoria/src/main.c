@@ -1,5 +1,4 @@
 #include "main.h"
-#include "configuracion.h"
 
 config_memoria_t configMEMORIA;
 t_log* logger;

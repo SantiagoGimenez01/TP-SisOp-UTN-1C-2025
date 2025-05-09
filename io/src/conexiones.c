@@ -1,8 +1,5 @@
-#include "sockets.h"
-#include "utils/libs/logger.h"
-#include "utils/libs/config.h"
-#include "utils/structs.h"
 #include "conexiones.h"
+
 int socket_kernel;
 
 void comprobarSocket(int socket, char* moduloOrigen, char* moduloDestino){

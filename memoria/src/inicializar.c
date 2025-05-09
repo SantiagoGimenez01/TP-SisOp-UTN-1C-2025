@@ -1,6 +1,5 @@
 #include "inicializar.h"
 
-
 void inicializar_memoria() {
     cantidad_frames = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
 

@@ -1,5 +1,6 @@
 #ifndef CONFIGURACION_H
 #define CONFIGURACION_H
+
 #include "configuracion.h"
 #include "globales.h"
 #include "conexiones.h"

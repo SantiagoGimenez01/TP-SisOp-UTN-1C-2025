@@ -1,6 +1,6 @@
 #ifndef CONFIGURACION_H
 #define CONFIGURACION_H
-#include "configuracion.h"
+
 #include "configuracion.h"
 #include "utils/libs/config.h"
 #include "utils/libs/logger.h"
