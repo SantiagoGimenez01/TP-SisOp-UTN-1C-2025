@@ -1,6 +1,7 @@
 #ifndef COMPONENTES_H
 #define COMPONENTES_H
 
+#include "componentes.h"
 #include "globales.h"
 #include <math.h>
 

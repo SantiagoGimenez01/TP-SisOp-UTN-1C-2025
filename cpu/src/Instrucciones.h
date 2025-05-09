@@ -1,13 +1,13 @@
 #ifndef INSTRUCCIONES_H
 #define INSTRUCCIONES_H
 
+#include "Instrucciones.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
-
 #include "utils/paquete.h"     
 #include "utils/structs.h"     
 #include "componentes.h"  

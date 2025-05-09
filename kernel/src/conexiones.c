@@ -1,5 +1,5 @@
-
 #include "conexiones.h"
+
 // --- Funciones auxiliares para cada puerto ---
 void comprobacionModulo(t_modulo modulo_origen, t_modulo esperado, char* modulo, void (*operacion)(int),int socket_cliente){
 

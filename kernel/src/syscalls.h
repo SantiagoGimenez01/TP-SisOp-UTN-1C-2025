@@ -2,6 +2,7 @@
 #ifndef SYSCALLS_H_
 #define SYSCALLS_H_
 
+#include "syscalls.h"
 #include "conexionMemoria.h"
 #include "../../utils/src/utils/structs.h"
 #include "inicializar.h"

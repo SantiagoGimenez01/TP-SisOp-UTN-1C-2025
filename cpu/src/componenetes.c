@@ -1,4 +1,5 @@
 #include "componentes.h"
+
 t_list* tlb = NULL;
 t_list* cache_paginas = NULL;
 

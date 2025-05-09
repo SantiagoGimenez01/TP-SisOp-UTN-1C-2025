@@ -1,8 +1,4 @@
-#include "globales.h"
 #include "inicializar.h"
-#include "../../utils/src/utils/structs.h"
-#include <sys/time.h>
-#include "planificador.h"
 
 t_list* cpus;
 t_list* ios;

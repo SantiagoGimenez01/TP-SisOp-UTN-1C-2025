@@ -1,9 +1,4 @@
-#include "sockets.h"
-#include "utils/libs/logger.h"
-#include "utils/libs/config.h"
-#include "utils/structs.h"
 #include "conexiones.h"
-#include "globales.h"
 
 int tam_pagina = 0;
 int cant_entradas_por_tabla = 0;

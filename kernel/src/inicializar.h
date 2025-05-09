@@ -1,8 +1,13 @@
 #ifndef INICIALIZAR_H
 #define INICIALIZAR_H
 
+#include "inicializar.h"
 #include "../../utils/src/utils/structs.h"
 #include <semaphore.h>
+#include "globales.h"
+#include "../../utils/src/utils/structs.h"
+#include <sys/time.h>
+#include "planificador.h"
 
 extern int proximo_id_cpu;
 extern t_list* cpus_incompletas;

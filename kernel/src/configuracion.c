@@ -1,6 +1,4 @@
 #include "configuracion.h"
-#include "conexiones.h"
-#include "globales.h"
 
 void cargarConfiguracionKernel(char* path, config_kernel_t* configKernel, t_log** logger) {
     t_config* config = iniciar_config(path);          // Carga el config en memoria

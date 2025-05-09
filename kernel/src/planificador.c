@@ -1,13 +1,4 @@
 #include "planificador.h"
-#include "utils/libs/logger.h"
-#include "sockets.h"
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include "inicializar.h"
-
-
-
 
 extern config_kernel_t configKERNEL;
 extern t_log* logger;
