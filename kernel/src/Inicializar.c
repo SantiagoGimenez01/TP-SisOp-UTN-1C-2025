@@ -115,8 +115,9 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
     nuevo_pcb->estado_actual = -1;
     nuevo_pcb->momento_entrada_estado = get_timestamp();
     nuevo_pcb->metricas = list_create();
-    nuevo_pcb->estimacion_rafaga = configKERNEL.estimacion_inicial; 
-    nuevo_pcb->rafaga_real = 0;
+    nuevo_pcb->estimacion_rafaga = configKERNEL.estimacion_inicial;
+    nuevo_pcb->estimacion_anterior = 0;
+    nuevo_pcb->rafaga_anterior = 0;
     nuevo_pcb->archivo_pseudocodigo = strdup(archivo_pseudocodigo);
     nuevo_pcb->tiempoIO = -1;
     

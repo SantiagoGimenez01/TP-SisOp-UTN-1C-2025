@@ -154,9 +154,9 @@ void* planificador_corto_plazo(void* arg) {
         t_pcb* proceso = obtener_siguiente_de_ready();  
 
         if (!proceso) {
-            log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
+            //log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
             cpu->disponible = true;
-            sem_post(&sem_cpu_disponible);  
+            //sem_post(&sem_cpu_disponible);  
             continue;
         }
 
