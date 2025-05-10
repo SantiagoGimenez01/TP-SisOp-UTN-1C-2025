@@ -111,7 +111,7 @@ void* planificador_largo_plazo(void* arg) {
         if (!siguiente) continue;
 
         bool aceptado = solicitar_espacio_a_memoria(siguiente);
-        log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
+        //log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
         if (aceptado) {
             cambiar_estado(siguiente, READY);
             //pthread_mutex_lock(&mutex_ready);

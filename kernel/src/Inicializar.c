@@ -134,7 +134,13 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
 
     if(pcb->estado_actual == EXEC){
         pcb->rafaga_anterior = duracion;
-        log_info(logger, "## (%d): Rafaga anterior = %dms", pcb->pid, pcb->rafaga_anterior);
+        pcb->estimacion_anterior = pcb->estimacion_rafaga;
+        log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %d", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
+    }
+
+    if(pcb->estado_actual == BLOCKED && nuevo_estado == READY){
+        pcb->estimacion_rafaga = calcularEstimacion(pcb);
+        log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
     }
 
     // Remover PCB de su cola anterior
@@ -154,6 +160,12 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     
     log_info(logger, "## (%d) Pasa del estado %s al estado %s", 
              pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
+}
+
+int calcularEstimacion(t_pcb *pcb){
+    double alfa = configKERNEL.alfa;
+    int estimacion = alfa * pcb->rafaga_anterior + (1-alfa) * pcb->estimacion_anterior;
+    return estimacion;
 }
 
 void remover_de_cola(t_pcb* pcb, t_estado_proceso estado) {
