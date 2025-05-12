@@ -59,6 +59,8 @@ void reemplazar_tlb_fifo(uint32_t nro_pagina, uint32_t marco) {
     if (list_size(tlb) == 0) return; 
 
     t_entrada_tlb* victima = list_remove(tlb, 0);
+    log_info(logger, "TLB reemplazo FIFO: se reemplazo la pagina %d", victima->nro_pagina);
+
     free(victima);
 
     t_entrada_tlb* nueva = malloc(sizeof(t_entrada_tlb));

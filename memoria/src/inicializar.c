@@ -37,11 +37,14 @@ t_tabla_nivel* crear_tabla_nivel(int nivel_actual, int nivel_maximo) {
     return tabla;
 }
 
-void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tamanio) {
+void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tamanio, uint32_t paginas_necesarias) {
     t_proceso_en_memoria* nuevo = malloc(sizeof(t_proceso_en_memoria));
     nuevo->pid = pid;
     nuevo->tamanio = tamanio;
     nuevo->nombre_archivo = strdup(nombre_archivo); 
+    nuevo->paginas_necesarias = paginas_necesarias;
+    nuevo->marcos_asignados = 0;
+
 
     nuevo->metricas.accesos_tablas_paginas = 0;
     nuevo->metricas.instrucciones_solicitadas = 0;

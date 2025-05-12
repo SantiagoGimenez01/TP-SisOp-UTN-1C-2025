@@ -93,7 +93,7 @@ void operarKernel(int socket_cliente) {
             log_info(logger, "El proceso %d requiere %d páginas", pid, paginas_necesarias);
 
             if (hay_espacio_para(paginas_necesarias)) {
-                crear_estructuras_para_proceso(pid, archivo, tamanio);  // crea la jerarquica sin asignar marcos por ahora
+                crear_estructuras_para_proceso(pid, archivo, tamanio, paginas_necesarias);  // crea la jerarquica sin asignar marcos por ahora
 
                 int respuesta_ok = RESPUESTA_OK;
                 send(socket_cliente, &respuesta_ok, sizeof(int), 0);

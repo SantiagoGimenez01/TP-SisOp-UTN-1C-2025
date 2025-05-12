@@ -163,14 +163,38 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     if (respuesta == CONTINUAR_PROCESO) {
         log_info(logger, "CPU (PID %d): Kernel indico CONTINUAR", pid);
         return true;  // Sigue ejecutando
-    } else if (respuesta == DESALOJAR_PROCESO) {
+    }else if(respuesta == DESALOJAR_PROCESO) {
         log_info(logger, "CPU (PID %d): Kernel indico DESALOJO", pid);
-        if(cache_paginas != NULL){
+    
+        if (cache_paginas != NULL) {
             actualizar_paginas_modificadas_en_memoria(pid);
+            limpiar_cache();
         }
-        return false; // Termina ejecutar_ciclo()
-    } else {
+
+        if (tlb != NULL) {
+            limpiar_tlb();
+        }       
+        return false; // Terminar ciclo()
+    }
+     else {
         log_warning(logger, "CPU (PID %d): Respuesta inesperada de Kernel: %d", pid, respuesta);
         return false;
     }
+}
+
+
+void limpiar_tlb() {
+    list_destroy_and_destroy_elements(tlb, free);
+    tlb = list_create();
+    log_info(logger, "TLB limpiada");
+}
+
+void limpiar_cache() {
+    for (int i = 0; i < list_size(cache_paginas); i++) {
+        t_entrada_cache* entrada = list_get(cache_paginas, i);
+        free(entrada->contenido);
+    }
+    list_destroy_and_destroy_elements(cache_paginas, free);
+    cache_paginas = list_create();
+    log_info(logger, "Cache de páginas limpiada");
 }

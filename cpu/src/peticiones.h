@@ -9,5 +9,7 @@ char* pedir_fragmento_de_memoria(int pid, int marco, int desplazamiento, int tam
 void actualizar_paginas_modificadas_en_memoria(uint32_t pid);
 char* pedir_instruccion_a_memoria(uint32_t pid, uint32_t pc);
 bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc);
+void limpiar_tlb();
+void limpiar_cache();
 
 #endif

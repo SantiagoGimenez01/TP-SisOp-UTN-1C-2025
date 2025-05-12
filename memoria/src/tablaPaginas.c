@@ -14,6 +14,14 @@ uint32_t obtener_marco(t_proceso_en_memoria* proceso, int* entradas_niveles) {
     usleep(configMEMORIA.retardo_memoria * 1000);
 
     if (!entrada_final->presencia) {
+
+        if (proceso->marcos_asignados >= proceso->paginas_necesarias) {
+            log_error(logger, "PID %d intenta usar mas paginas (%d) de las asignadas (%d).",
+                      proceso->pid,
+                      proceso->marcos_asignados + 1,
+                      proceso->paginas_necesarias);
+            return -1;
+        }
         uint32_t frame_libre = buscar_frame_libre();
         if (frame_libre == -1) {
             log_error(logger, "No hay marcos disponibles para asignar.");
@@ -25,6 +33,8 @@ uint32_t obtener_marco(t_proceso_en_memoria* proceso, int* entradas_niveles) {
         entrada_final->presencia = true;
         entrada_final->uso = true;
         entrada_final->modificado = false;
+
+        proceso->marcos_asignados++;
 
         log_trace(logger, "Asignado marco %d a PID %d, página %d", frame_libre, proceso->pid, entradas_niveles[configMEMORIA.cantidad_niveles - 1]);
     }
