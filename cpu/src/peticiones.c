@@ -167,7 +167,6 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
         log_info(logger, "CPU (PID %d): Kernel indico DESALOJO", pid);
     
         if (cache_paginas != NULL) {
-            actualizar_paginas_modificadas_en_memoria(pid);
             limpiar_cache();
         }
 

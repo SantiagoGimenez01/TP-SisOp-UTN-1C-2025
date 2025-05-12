@@ -216,13 +216,16 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
             break;
         }
 
-        case IO:        
-        case INIT_PROC: 
+        case IO:
         case DUMP_MEMORY:
         case EXIT:
+            if (cache_paginas != NULL) {
+                actualizar_paginas_modificadas_en_memoria(pid);
+            }
+            return enviar_syscall_a_kernel(inst, pid, *pc);
 
-            return enviar_syscall_a_kernel(inst, pid, *pc); // TENGO QUE PROBAR ESTO PARA QUE SUME en caso de que se haya desalojado, HAY QUE PROBAR
-            break;
+        case INIT_PROC:
+            return enviar_syscall_a_kernel(inst, pid, *pc);
 
         default:
             log_warning(logger, "CPU (PID %d): Instruccion invalida o no implementada", pid);

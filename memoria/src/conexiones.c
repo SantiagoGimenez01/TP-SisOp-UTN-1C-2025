@@ -353,7 +353,9 @@ void operarCPU(int socket_cliente) {
             
                 char* destino = memoria_fisica + marco * configMEMORIA.tam_pagina;
                 memcpy(destino, contenido, configMEMORIA.tam_pagina);
-            
+                log_info(logger, "Memoria: Página actualizada desde CPU - PID: %d - Marco: %d - Contenido: %s",
+                     pid, marco, contenido);
+
                 proceso->metricas.escrituras_memoria++; 
 
                 int respuesta = RESPUESTA_OK;
