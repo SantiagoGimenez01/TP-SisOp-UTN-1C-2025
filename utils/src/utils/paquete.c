@@ -108,3 +108,9 @@ const char* nombre_syscall(t_instruccion_id id) {
         default: return "DESCONOCIDA";
     }
 } // lo puse aca solo porque lo uso en 2 modulos
+
+uint64_t get_timestamp() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (uint64_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000); // tremenda fruta pero vamos a ver que sale
+}

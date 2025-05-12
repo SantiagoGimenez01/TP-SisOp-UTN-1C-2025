@@ -2,6 +2,9 @@
 
 t_list* tlb = NULL;
 t_list* cache_paginas = NULL;
+int puntero_clock = 0;
+int puntero_clock_m = 0;
+
 
 t_direccion_fisica* traducir_direccion_logica(int direccion_logica) {
     t_direccion_fisica* dir_fisica = malloc(sizeof(t_direccion_fisica));
@@ -20,6 +23,8 @@ t_direccion_fisica* traducir_direccion_logica(int direccion_logica) {
     return dir_fisica;
 }
 
+
+
 t_entrada_tlb* buscar_en_tlb(uint32_t nro_pagina) {
     for (int i = 0; i < list_size(tlb); i++) {
         t_entrada_tlb* entrada = list_get(tlb, i);
@@ -31,40 +36,57 @@ t_entrada_tlb* buscar_en_tlb(uint32_t nro_pagina) {
 }
 
 void agregar_a_tlb(uint32_t nro_pagina, uint32_t marco) {
+
     if (list_size(tlb) == configCPU.entradas_tlb) {
-        //reemplazar_entrada_tlb(nro_pagina, marco); // desarrollo
+        if (strcmp(configCPU.reemplazo_tlb, "FIFO") == 0){
+            reemplazar_tlb_fifo(nro_pagina, marco);
+            return;
+        }
+        else{
+            reemplazar_tlb_lru(nro_pagina, marco);
+            return;
+        }
     } else {
         t_entrada_tlb* nueva = malloc(sizeof(t_entrada_tlb));
         nueva->nro_pagina = nro_pagina;
         nueva->marco = marco;
+        nueva->ultima_uso = get_timestamp();
         list_add(tlb, nueva);
     }
 }
 
-char* pedir_contenido_de_pagina(uint32_t pid, uint32_t marco) {
-    enviar_opcode(PEDIR_PAGINA_COMPLETA, socket_memoria);
-    t_paquete* paquete = crear_paquete();
-    agregar_int_a_paquete(paquete, pid);
-    agregar_int_a_paquete(paquete, marco);
-    enviar_paquete(paquete, socket_memoria);
-    eliminar_paquete(paquete);
+void reemplazar_tlb_fifo(uint32_t nro_pagina, uint32_t marco) {
+    if (list_size(tlb) == 0) return; 
 
-    t_paquete* respuesta = recibir_paquete(socket_memoria);
-    char* contenido = recibir_string_de_paquete(respuesta);
-    eliminar_paquete(respuesta);
-    return contenido;
+    t_entrada_tlb* victima = list_remove(tlb, 0);
+    free(victima);
+
+    t_entrada_tlb* nueva = malloc(sizeof(t_entrada_tlb));
+    nueva->nro_pagina = nro_pagina;
+    nueva->marco = marco;
+    nueva->ultima_uso = 0; 
+    list_add(tlb, nueva);
 }
 
-void escribir_en_memoria(uint32_t pid, uint32_t nro_pagina, uint32_t desplazamiento, char* nuevo_contenido) {
-    enviar_opcode(ESCRIBIR_PAGINA, socket_memoria);
-    t_paquete* paquete = crear_paquete();
-    agregar_int_a_paquete(paquete, pid);
-    agregar_int_a_paquete(paquete, nro_pagina);
-    agregar_int_a_paquete(paquete, desplazamiento);
-    agregar_string_a_paquete(paquete, nuevo_contenido);
-    enviar_paquete(paquete, socket_memoria);
-    eliminar_paquete(paquete);
+
+void reemplazar_tlb_lru(uint32_t nro_pagina, int marco) {
+    t_entrada_tlb* victima = NULL;
+    uint64_t min_tiempo = UINT64_MAX;
+
+    for (int i = 0; i < list_size(tlb); i++) {
+        t_entrada_tlb* entrada = list_get(tlb, i);
+        if (entrada->ultima_uso < min_tiempo) {
+            min_tiempo = entrada->ultima_uso;
+            victima = entrada;
+        }
+    }
+
+    victima->nro_pagina = nro_pagina;
+    victima->marco = marco;
+    victima->ultima_uso = get_timestamp();
 }
+
+
 
 char* extraer_fragmento_con_desplazamiento(char* contenido, uint32_t desplazamiento, int tamanio) {
     char* fragmento = malloc(tamanio + 1);
@@ -85,19 +107,29 @@ t_entrada_cache* buscar_en_cache(uint32_t nro_pagina) {
 }
 
 
-void agregar_a_cache(uint32_t nro_pagina, char* contenido) {
+void agregar_a_cache(uint32_t pid, t_direccion_fisica* dir, uint32_t marco, char* contenido) {
     
     if (list_size(cache_paginas) == configCPU.entradas_cache) {
-        //reemplazar_en_cache();  // desarollo
+        if (strcmp(configCPU.reemplazo_cache, "CLOCK") == 0){
+            reemplazar_cache_clock(pid, dir, marco, contenido);
+            return;
+        }
+        else{
+            reemplazar_cache_clock_m(pid, dir, marco, contenido);
+            return;
+        }
     }
+    else{
 
-    t_entrada_cache* nueva = malloc(sizeof(t_entrada_cache));
-    nueva->nro_pagina = nro_pagina;
-    nueva->contenido = strdup(contenido);
-    nueva->uso = true;
-    nueva->modificado = false;
+        t_entrada_cache* nueva = malloc(sizeof(t_entrada_cache));
+        nueva->nro_pagina = dir->numero_pagina;
+        nueva->contenido = strdup(contenido);
+        nueva->uso = true;
+        nueva->modificado = false;
+        nueva->marco = marco;
 
-    list_add(cache_paginas, nueva);
+        list_add(cache_paginas, nueva);
+    }
 }
 
 void escribir_en_cache(uint32_t nro_pagina, uint32_t desplazamiento, const char* datos) {
@@ -112,42 +144,6 @@ void escribir_en_cache(uint32_t nro_pagina, uint32_t desplazamiento, const char*
     entrada->uso = true;
 }
 
-
-uint32_t pedir_marco_a_memoria(int pid, t_direccion_fisica* dir) {
-    enviar_opcode(PEDIR_MARCO, socket_memoria);
-
-    t_paquete* paquete = crear_paquete();
-    agregar_int_a_paquete(paquete, pid);
-
-    for (int i = 0; i < cantidad_niveles; i++) {
-        agregar_int_a_paquete(paquete, dir->entradas_niveles[i]);
-    }
-
-    enviar_paquete(paquete, socket_memoria);
-    eliminar_paquete(paquete);
-
-    uint32_t marco;
-    recv(socket_memoria, &marco, sizeof(int), MSG_WAITALL);
-    return marco;
-}
-
-char* pedir_fragmento_de_memoria(int pid, int marco, int desplazamiento, int tamanio) {
-    enviar_opcode(LEER_PAGINA, socket_memoria);
-
-    t_paquete* paquete = crear_paquete();
-    agregar_int_a_paquete(paquete, pid);
-    agregar_int_a_paquete(paquete, marco);
-    agregar_int_a_paquete(paquete, desplazamiento);
-    agregar_int_a_paquete(paquete, tamanio);
-
-    enviar_paquete(paquete, socket_memoria);
-    eliminar_paquete(paquete);
-
-    t_paquete* recibido = recibir_paquete(socket_memoria);
-    char* resultado = recibir_string_de_paquete(recibido);
-    eliminar_paquete(recibido);
-    return resultado;
-}
 
 void escribir_fragmento_en_pagina(char* pagina_completa, uint32_t desplazamiento, const char* datos) {
     // Sobrescribe a partir del desplazamiento con los datos dados
@@ -170,3 +166,82 @@ void marcar_modificada_en_cache(uint32_t nro_pagina) {
         }
     }
 }
+
+
+void reemplazar_cache_clock_m(uint32_t pid, t_direccion_fisica* dir, uint32_t marco, char* contenido) {
+    int size = list_size(cache_paginas);
+    int iteraciones = 0;
+    bool reemplazo_realizado = false;
+
+    // Primera pasada: uso == 0, modificado == 0
+    while (iteraciones < size) {
+        t_entrada_cache* actual = list_get(cache_paginas, puntero_clock_m);
+        if (!actual->uso && !actual->modificado) {
+            reemplazo_realizado = true;
+            break;
+        }
+        puntero_clock_m = (puntero_clock_m + 1) % size;
+        iteraciones++;
+    }
+
+    // Segunda pasada: uso == 0, modificado == 1
+    if (!reemplazo_realizado) {
+        iteraciones = 0;
+        while (iteraciones < size) {
+            t_entrada_cache* actual = list_get(cache_paginas, puntero_clock_m);
+            if (!actual->uso && actual->modificado) {
+                reemplazo_realizado = true;
+                break;
+            }
+            actual->uso = false;  // Preparar para siguiente ciclo
+            puntero_clock_m = (puntero_clock_m + 1) % size;
+            iteraciones++;
+        }
+    }
+
+    // Reemplazo final
+    t_entrada_cache* victima = list_get(cache_paginas, puntero_clock_m);
+    if (victima->modificado) {
+        escribir_en_memoria(pid, dir, victima->marco, victima->contenido);
+        log_info(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Página: %d - Frame: %d", pid, victima->nro_pagina, victima->marco);
+    }
+
+    free(victima->contenido);
+    victima->nro_pagina = dir->numero_pagina;
+    victima->contenido = strdup(contenido);
+    victima->uso = true;
+    victima->modificado = false;
+    victima->marco = marco;
+
+    puntero_clock_m = (puntero_clock_m + 1) % size;
+}
+
+void reemplazar_cache_clock(uint32_t pid, t_direccion_fisica* dir, uint32_t marco, char* contenido) {
+    int size = list_size(cache_paginas);
+    int reemplazada = 0;
+
+    while (!reemplazada) {
+        t_entrada_cache* actual = list_get(cache_paginas, puntero_clock);
+
+        if (!actual->uso) {
+            if (actual->modificado) {
+                escribir_en_memoria(pid, dir, actual->marco, actual->contenido);
+                log_info(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Pagina: %d - Frame: %d", pid, actual->nro_pagina, actual->marco);
+            }
+
+            free(actual->contenido);
+            actual->nro_pagina = dir->numero_pagina;
+            actual->contenido = strdup(contenido);
+            actual->uso = true;
+            actual->modificado = false;
+            actual->marco = marco;
+
+            reemplazada = 1;
+        } else {
+            actual->uso = false;
+        }
+
+        puntero_clock = (puntero_clock + 1) % size;
+    }
+}
+

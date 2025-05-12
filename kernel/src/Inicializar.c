@@ -245,11 +245,7 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
 } // AGARREMOS CON PINZAS LOS SEMAFOROS POST
 
 
-uint64_t get_timestamp() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (uint64_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000); // tremenda fruta pero vamos a ver que sale
-}
+
 
 t_metricas_estado* buscar_o_crear_metrica(t_list* metricas, t_estado_proceso estado) {
     for (int i = 0; i < list_size(metricas); i++) {

@@ -50,7 +50,8 @@ typedef enum {
     CPU_LIBRE, 
     FIN_IO, 
     PEDIR_PAGINA_COMPLETA,
-    PEDIR_MARCO
+    PEDIR_MARCO,
+    ACTUALIZAR_PAGINA_COMPLETA
 } t_opcode;
 
 typedef enum {

@@ -24,11 +24,21 @@ typedef struct {
 } t_tabla_nivel;
 
 typedef struct {
+    int accesos_tablas_paginas;
+    int instrucciones_solicitadas;
+    int bajadas_a_swap;
+    int subidas_de_swap;
+    int lecturas_memoria;
+    int escrituras_memoria;
+} t_metricas_proceso;
+
+typedef struct {
     uint32_t pid;
     t_tabla_nivel* tabla_nivel_1;
     char* nombre_archivo;
     int tamanio;
     t_list* instrucciones;  // Lista de char*
+     t_metricas_proceso metricas;
 } t_proceso_en_memoria;
 
 
