@@ -103,6 +103,10 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
                 t_entrada_tlb* entrada_tlb = buscar_en_tlb(nro_pagina);
                 if (entrada_tlb) {
                     log_info(logger, "PID: %d - TLB HIT - Pagina: %d", pid, nro_pagina);
+                    if(strcmp(configCPU.reemplazo_tlb, "LRU") == 0){
+                        entrada_tlb->ultima_uso = get_timestamp(); // solo para LRU
+                        log_info(logger, "TLB HIT - Se actualiza timestamp de uso para pagina %d", entrada_tlb->nro_pagina);
+                    }
                     marco = entrada_tlb->marco;
                 } else {
                     log_info(logger, "PID: %d - TLB MISS - Pagina: %d", pid, nro_pagina);
@@ -166,7 +170,13 @@ bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc) {
                 t_entrada_tlb* entrada_tlb = buscar_en_tlb(nro_pagina);
                 if (entrada_tlb) {
                     log_info(logger, "PID: %d - TLB HIT - Pagina: %d", pid, nro_pagina);
+                    if(strcmp(configCPU.reemplazo_tlb, "LRU") == 0){
+                        entrada_tlb->ultima_uso = get_timestamp(); // solo para LRU
+                        log_info(logger, "TLB HIT - Se actualiza timestamp de uso para pagina %d", entrada_tlb->nro_pagina);
+
+                    }
                     marco = entrada_tlb->marco;
+                    
                 } else {
                     log_info(logger, "PID: %d - TLB MISS - Pagina: %d", pid, nro_pagina);
                 }

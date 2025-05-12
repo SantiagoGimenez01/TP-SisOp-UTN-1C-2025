@@ -82,6 +82,7 @@ void reemplazar_tlb_lru(uint32_t nro_pagina, int marco) {
             victima = entrada;
         }
     }
+    log_info(logger, "TLB reemplazo LRU: se reemplazo la pagina %d", victima->nro_pagina);
 
     victima->nro_pagina = nro_pagina;
     victima->marco = marco;
