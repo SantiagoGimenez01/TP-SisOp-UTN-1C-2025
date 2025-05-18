@@ -20,21 +20,34 @@ t_tabla_nivel* crear_tabla_nivel(int nivel_actual, int nivel_maximo) {
     t_tabla_nivel* tabla = malloc(sizeof(t_tabla_nivel));
     tabla->entradas = malloc(sizeof(t_entrada_pagina*) * configMEMORIA.entradas_por_tabla);
 
-    for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++) {
+    return tabla;
+}
+
+void asignar_marcos_a_paginas(t_tabla_nivel* tabla, int nivel_actual, int nivel_maximo, int* paginas_asignadas, int total_paginas) {
+    for (int i = 0; i < configMEMORIA.entradas_por_tabla && *paginas_asignadas < total_paginas; i++) {
         if (nivel_actual == nivel_maximo) {
-            // ultimo nivel apuntan a marcos (inicialmente no asignados. TENGO QUE REPASAR)
             tabla->entradas[i] = malloc(sizeof(t_entrada_pagina));
-            tabla->entradas[i]->marco = -1;      
-            tabla->entradas[i]->presencia = false;
+            int frame = buscar_frame_libre();
+            tabla->entradas[i]->marco = frame;
+            tabla->entradas[i]->presencia = true;
             tabla->entradas[i]->uso = false;
             tabla->entradas[i]->modificado = false;
+            (*paginas_asignadas)++;
         } else {
-            // Apuntan a otra tabla
-            tabla->entradas[i] = (t_entrada_pagina*)crear_tabla_nivel(nivel_actual + 1, nivel_maximo);
+            tabla->entradas[i] = (t_entrada_pagina*) crear_tabla_nivel(nivel_actual + 1, nivel_maximo);
+            asignar_marcos_a_paginas((t_tabla_nivel*)tabla->entradas[i], nivel_actual + 1, nivel_maximo, paginas_asignadas, total_paginas);
         }
     }
+}
 
-    return tabla;
+int buscar_frame_libre() {
+    for (int i = 0; i < bitarray_get_max_bit(bitmap_frames); i++) {
+        if (!bitarray_test_bit(bitmap_frames, i)) {
+            bitarray_set_bit(bitmap_frames, i);
+            return i;
+        }
+    }
+    return -1; // No deberia pasar si ya se verifico antes
 }
 
 void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tamanio, uint32_t paginas_necesarias) {
@@ -43,7 +56,7 @@ void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tama
     nuevo->tamanio = tamanio;
     nuevo->nombre_archivo = strdup(nombre_archivo); 
     nuevo->paginas_necesarias = paginas_necesarias;
-    nuevo->marcos_asignados = 0;
+    
 
 
     nuevo->metricas.accesos_tablas_paginas = 0;
@@ -55,13 +68,16 @@ void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tama
 
     nuevo->tabla_nivel_1 = crear_tabla_nivel(1, configMEMORIA.cantidad_niveles);
 
+    int paginas_asignadas = 0;
+    asignar_marcos_a_paginas(nuevo->tabla_nivel_1, 1, configMEMORIA.cantidad_niveles, &paginas_asignadas, paginas_necesarias);
+
     // Inicializar y cargar las instrucciones directamente
     nuevo->instrucciones = list_create();
     cargar_instrucciones(nuevo->instrucciones, nombre_archivo);  
 
     list_add(procesos_en_memoria, nuevo);
 
-    log_info(logger, "Se inicializaron estructuras y cargaron instrucciones para el proceso %d", pid);
+    log_info(logger, "Se inicializaron estructuras, se asignaron marcos y se cargaron instrucciones para el proceso %d", pid);
 }
 
 

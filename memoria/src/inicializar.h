@@ -19,5 +19,7 @@ void cargar_instrucciones(t_list* lista_instrucciones, char* nombre_archivo);
 void log_metricas_proceso(t_proceso_en_memoria* proceso);
 void liberar_marcos_de_proceso(t_tabla_nivel* tabla, int nivel_actual);
 void liberar_proceso_en_memoria(t_proceso_en_memoria* proceso);
+int buscar_frame_libre();
+void asignar_marcos_a_paginas(t_tabla_nivel* tabla, int nivel_actual, int nivel_maximo, int* paginas_asignadas, int total_paginas);  
 
 #endif

@@ -6,7 +6,7 @@ uint32_t obtener_marco(t_proceso_en_memoria* proceso, int* entradas_niveles) {
     for (int i = 0; i < configMEMORIA.cantidad_niveles - 1; i++) {
         actual = (t_tabla_nivel*) actual->entradas[entradas_niveles[i]];
         proceso->metricas.accesos_tablas_paginas++;
-        usleep(configMEMORIA.retardo_memoria * 1000); // milisegundos a microsegundos
+        usleep(configMEMORIA.retardo_memoria * 1000);
     }
 
     t_entrada_pagina* entrada_final = actual->entradas[entradas_niveles[configMEMORIA.cantidad_niveles - 1]];
@@ -14,43 +14,12 @@ uint32_t obtener_marco(t_proceso_en_memoria* proceso, int* entradas_niveles) {
     usleep(configMEMORIA.retardo_memoria * 1000);
 
     if (!entrada_final->presencia) {
-
-        if (proceso->marcos_asignados >= proceso->paginas_necesarias) {
-            log_error(logger, "PID %d intenta usar mas paginas (%d) de las asignadas (%d).",
-                      proceso->pid,
-                      proceso->marcos_asignados + 1,
-                      proceso->paginas_necesarias);
-            return -1;
-        }
-        uint32_t frame_libre = buscar_frame_libre();
-        if (frame_libre == -1) {
-            log_error(logger, "No hay marcos disponibles para asignar.");
-            return -1; // NO DEBERIA PASAR
-        }
-
-        bitarray_set_bit(bitmap_frames, frame_libre);
-        entrada_final->marco = frame_libre;
-        entrada_final->presencia = true;
-        entrada_final->uso = true;
-        entrada_final->modificado = false;
-
-        proceso->marcos_asignados++;
-
-        log_trace(logger, "Asignado marco %d a PID %d, página %d", frame_libre, proceso->pid, entradas_niveles[configMEMORIA.cantidad_niveles - 1]);
+        log_error(logger, "PID %d - Se intento acceder a una pagina no presente (pagina %d)", 
+                  proceso->pid, entradas_niveles[configMEMORIA.cantidad_niveles - 1]);
+        return -1;
     }
 
     return entrada_final->marco;
-}
-
-int buscar_frame_libre() {
-    for (int i = 0; i < cantidad_frames; i++) {
-        if (!bitarray_test_bit(bitmap_frames, i)) {
-            log_trace(logger, "Se encontro frame libre: %d", i);
-            return i;
-        }
-    }
-    log_warning(logger, "No hay marcos libres disponibles");
-    return -1;
 }
 
 

@@ -40,7 +40,7 @@ typedef struct {
     t_list* instrucciones;  // Lista de char*
     t_metricas_proceso metricas;
     uint32_t paginas_necesarias;
-    uint32_t marcos_asignados;
+    
 } t_proceso_en_memoria;
 
 
