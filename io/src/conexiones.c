@@ -43,7 +43,7 @@ void escuchar_pedidos_io() {
                 // Recibir paquete con PID y tiempo
                 t_paquete* paquete = recibir_paquete(socket_kernel);
                 int offset = 0;
-
+                int t = 0; //Variable para efectuar 1ms de IO
                 int pid;
                 memcpy(&pid, paquete->buffer->stream + offset, sizeof(int));
                 offset += sizeof(int);
@@ -54,8 +54,12 @@ void escuchar_pedidos_io() {
                 eliminar_paquete(paquete);
 
                 log_info(logger, "## PID: %d - Inicio de IO - Tiempo: %d", pid, tiempo);
-                usleep(tiempo * 1000);  // Convertimos a microsegundos, me deja dudas si esto va con el 1000
 
+                while(t < tiempo){
+                    usleep(1000);  // Convertimos a microsegundos, me deja dudas si esto va con el 1000
+                    t++;
+                }
+                log_info(logger, "Tiempo de IO efectuado: %dms", t);
                 log_info(logger, "## PID: %d - Fin de IO", pid);
 
                 enviar_opcode(FIN_IO, socket_kernel);

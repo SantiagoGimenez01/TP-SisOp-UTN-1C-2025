@@ -136,10 +136,13 @@ void liberar_marcos_de_proceso(t_tabla_nivel* tabla, int nivel_actual) {
 }
 
 void liberar_proceso_en_memoria(t_proceso_en_memoria* proceso) {
+    log_info(logger, "----Todavia no libero nada----");
     liberar_marcos_de_proceso(proceso->tabla_nivel_1, 1);
-
+    log_info(logger, "----Libero los marcos del proceso----");
     list_destroy_and_destroy_elements(proceso->instrucciones, free);
     free(proceso->nombre_archivo);
     list_remove_element(procesos_en_memoria, proceso); // elimina de la lista global
     free(proceso);
+
+    log_info(logger, "----Libero todo----");
 }
