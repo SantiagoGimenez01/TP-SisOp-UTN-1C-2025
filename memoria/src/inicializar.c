@@ -157,4 +157,5 @@ void liberar_proceso_en_memoria(t_proceso_en_memoria* proceso) {
     free(proceso->nombre_archivo);
     list_remove_element(procesos_en_memoria, proceso); // elimina de la lista global
     free(proceso);
+
 }

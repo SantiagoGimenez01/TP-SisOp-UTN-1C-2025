@@ -164,12 +164,22 @@ void* planificador_corto_plazo(void* arg) {
 }
 
 
+void* planificador_mediano_plazo(void* arg){
+    log_info(logger, "Planificacion de mediano plazo iniciada");
 
+    while(1){
+        //sem_wait(&sem_proceso_a_suspender); //Espero a que algun proceso este bloqueado X tiempo, cuando llega a ese tiempo, hago el signal para suspenderlo
+    }
+
+
+    return NULL;
+}
 
 
 void iniciar_planificadores() {
     pthread_t hilo_largo_plazo;
     pthread_t hilo_corto_plazo;
+    pthread_t hilo_mediano_plazo;
 
     pthread_create(&hilo_largo_plazo, NULL, planificador_largo_plazo, NULL);
     pthread_detach(hilo_largo_plazo);
@@ -177,7 +187,11 @@ void iniciar_planificadores() {
     pthread_create(&hilo_corto_plazo, NULL, planificador_corto_plazo, NULL);
     pthread_detach(hilo_corto_plazo);
 
-    log_info(logger, "Planificadores de largo y corto plazo iniciados.");
+    pthread_create(&hilo_mediano_plazo, NULL, planificador_mediano_plazo, NULL);
+    pthread_detach(hilo_mediano_plazo);
+
+
+    log_info(logger, "Planificadores de largo, corto y mediano plazo iniciados.");
 }
 
 

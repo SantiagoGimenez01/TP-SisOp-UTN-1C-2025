@@ -135,7 +135,7 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     if(pcb->estado_actual == EXEC){
         pcb->rafaga_anterior = duracion;
         pcb->estimacion_anterior = pcb->estimacion_rafaga;
-        log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %d", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
+        log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %dms", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
     }
 
     if(pcb->estado_actual == BLOCKED && nuevo_estado == READY){
