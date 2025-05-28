@@ -1,7 +1,6 @@
 #ifndef INICIALIZAR_H
 #define INICIALIZAR_H
 
-#include "inicializar.h"
 #include <stdint.h>
 #include <commons/bitarray.h>
 #include <commons/collections/list.h>

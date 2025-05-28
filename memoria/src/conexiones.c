@@ -133,6 +133,62 @@ void operarKernel(int socket_cliente) {
             send(socket_cliente, &ok, sizeof(int), 0);
             break;
         }
+        case SUSPENDER_PROCESO: {
+            log_info(logger, "Se recibio solicitud de SUSPENDER_PROCESO");
+
+            t_paquete* paquete = recibir_paquete(socket_cliente);
+            int pid;
+            memcpy(&pid, paquete->buffer->stream, sizeof(int));
+            eliminar_paquete(paquete);
+
+            t_proceso_en_memoria* proceso = buscar_proceso_por_pid(pid);
+            if (!proceso) {
+                log_warning(logger, "PID %d no encontrado para suspender", pid);
+                int error = RESPUESTA_ERROR;
+                send(socket_cliente, &error, sizeof(int), 0);
+                break;
+            } // No deberia pasar
+
+            suspender_proceso(proceso); 
+
+            int ok = RESPUESTA_OK;
+            send(socket_cliente, &ok, sizeof(int), 0);
+            log_info(logger, "Memoria: PID %d suspendido correctamente", pid);
+            break;
+        }
+
+        case DESUSPENDER_PROCESO: {
+            log_info(logger, "Se recibio solicitud de DESUSPENDER_PROCESO");
+        
+            t_paquete* paquete = recibir_paquete(socket_cliente);
+            int pid;
+            memcpy(&pid, paquete->buffer->stream, sizeof(int));
+            eliminar_paquete(paquete);
+        
+            t_proceso_en_memoria* proceso = buscar_proceso_por_pid(pid);
+            if (!proceso) {
+                log_warning(logger, "PID %d no encontrado para desuspender", pid);
+                int error = RESPUESTA_ERROR;
+                send(socket_cliente, &error, sizeof(int), 0);
+                break;
+            }
+        
+            int resultado = desuspender_proceso(proceso); 
+        
+            if (resultado == -1) {
+                int error = RESPUESTA_ERROR;
+                send(socket_cliente, &error, sizeof(int), 0);
+                log_warning(logger, "Memoria: no hay espacio suficiente para desuspender PID %d", pid);
+            } else {
+                int ok = RESPUESTA_OK;
+                send(socket_cliente, &ok, sizeof(int), 0);
+                log_info(logger, "Memoria: PID %d desuspendido correctamente", pid);
+            }
+        
+            break;
+        }
+
+
 
         case FINALIZAR_PROCESO: {
             log_info(logger, "Se recibio solicitud de FINALIZAR_PROCESO");

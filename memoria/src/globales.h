@@ -11,6 +11,7 @@ extern int cantidad_frames;
 extern int frames_libres;
 extern t_list* procesos_en_memoria; 
 extern void* memoria_fisica;
+extern t_list* paginas_en_swap;
 
 typedef struct {
     uint32_t marco;
@@ -42,6 +43,12 @@ typedef struct {
     uint32_t paginas_necesarias;
     
 } t_proceso_en_memoria;
+
+typedef struct {
+    int pid;
+    int nro_pagina;
+    int slot; // slot = posicion en swapfile.bin (0 = 0 bytes, 1 = 64 bytes, etc)
+} t_registro_swap;
 
 
 #endif

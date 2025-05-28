@@ -1,7 +1,7 @@
 #ifndef TABLAPLAGINAS_H
 #define TABLAPLAGINAS_H
 
-#include "globales.h"
+#include "swapDump.h"
 
 uint32_t obtener_marco(t_proceso_en_memoria* proceso, int* entradas_niveles);
 char* leer_fragmento(t_proceso_en_memoria* proceso, int marco, int desplazamiento, int tamanio);
