@@ -7,6 +7,7 @@
 #include "inicializar.h"
 #include "syscalls.h"
 
+
 void establecerConexiones();
 
 void operarDispatch(int socket_cliente);

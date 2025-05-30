@@ -24,10 +24,13 @@ extern t_list* pcbs;
 
 extern sem_t sem_procesos_en_new;
 extern sem_t sem_procesos_en_ready;
-extern sem_t sem_proceso_a_suspender;
+extern sem_t sem_procesos_en_blocked;
+extern sem_t sem_procesos_en_suspReady;
+extern sem_t sem_procesos_que_van_a_ready;
 
 extern pthread_mutex_t mutex_new;
 extern pthread_mutex_t mutex_ready;
+extern pthread_mutex_t mutex_blocked;
 extern pthread_mutex_t mutex_exit;
 extern pthread_mutex_t mutex_susp_ready;
 extern pthread_mutex_t mutex_susp_blocked;

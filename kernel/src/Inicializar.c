@@ -15,6 +15,9 @@ t_list* pcbs = NULL;
 
 sem_t sem_procesos_en_new;
 sem_t sem_procesos_en_ready;
+sem_t sem_procesos_en_blocked;
+sem_t sem_procesos_en_suspReady;
+sem_t sem_procesos_que_van_a_ready;
 
 pthread_mutex_t mutex_new;
 pthread_mutex_t mutex_ready;
@@ -37,6 +40,10 @@ void inicializarEstados() {
     pcbs = list_create();
     sem_init(&sem_procesos_en_new, 0, 0);
     sem_init(&sem_procesos_en_ready, 0, 0);
+    sem_init(&sem_procesos_en_blocked, 0, 0);
+    sem_init(&sem_procesos_en_suspReady, 0, 0);
+    sem_init(&sem_procesos_que_van_a_ready, 0, 0);
+
     sem_init(&sem_cpu_disponible, 0, 0);
 
     pthread_mutex_init(&mutex_new, NULL);
@@ -116,6 +123,7 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
     nuevo_pcb->rafaga_anterior = 0;
     nuevo_pcb->archivo_pseudocodigo = strdup(archivo_pseudocodigo);
     nuevo_pcb->tiempoIO = -1;
+    nuevo_pcb->timer_flag = -1;
     
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
     list_add(pcbs, nuevo_pcb);
@@ -138,7 +146,7 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
         log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %dms", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
     }
 
-    if(pcb->estado_actual == BLOCKED && nuevo_estado == READY){
+    if(pcb->estado_actual == BLOCKED && nuevo_estado == READY && strcmp(configKERNEL.algoritmo_planificacion, "FIFO") != 0){
         pcb->estimacion_rafaga = calcularEstimacion(pcb);
         log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
     }
@@ -150,7 +158,7 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     // Actualizar estado
     pcb->estado_actual = nuevo_estado;
     pcb->momento_entrada_estado = ahora;
-   
+
     if(nuevo_estado == BLOCKED){
         pcb->pc++;
     }
@@ -212,6 +220,7 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
             list_add(cola_new, pcb);
             pthread_mutex_unlock(&mutex_new);
             sem_post(&sem_procesos_en_new);
+            sem_post(&sem_procesos_que_van_a_ready);
             break;
         case READY:
             pthread_mutex_lock(&mutex_ready);
@@ -228,6 +237,8 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
             pthread_mutex_lock(&mutex_susp_ready);
             list_add(cola_susp_ready, pcb);
             pthread_mutex_unlock(&mutex_susp_ready);
+            sem_post(&sem_procesos_en_suspReady);
+            sem_post(&sem_procesos_que_van_a_ready);
             break;
         case SUSP_BLOCKED:
             pthread_mutex_lock(&mutex_susp_blocked);

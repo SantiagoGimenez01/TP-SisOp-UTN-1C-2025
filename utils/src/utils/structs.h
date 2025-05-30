@@ -96,6 +96,7 @@ typedef struct {
     uint32_t rafaga_anterior;     // R(n)  
     char* archivo_pseudocodigo;
     int tiempoIO;
+    int timer_flag;
 } t_pcb;
 
 

@@ -177,22 +177,29 @@ void operarIo(int socket_cliente) {
                 }
 
                 log_info(logger, "Fin de IO: %s recibido del PID %d", dispositivo->nombre, pid);
-
                 dispositivo->disponible = 1;
                 dispositivo->pid_actual = -1;
 
                 t_pcb* pcb = buscar_pcb_por_pid(pid);
-                if (pcb) {
-                    cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
+
+                if (pcb) {                   
+                    if(pcb->estado_actual == BLOCKED){
+                        pcb->timer_flag = -1;  // invalida el timer
+                        //log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
+                        cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
+                        //sem_post(&sem_procesos_en_ready); Este creo que estaba de mas ya que ya se hace el sem_post cuando se agrega pcb a lista_ready
+                        //log_info(logger, "Se hizo un semPost de ready");
+                    }else{
+                        cambiar_estado(pcb, SUSP_READY);
+                    }
                     pcb->tiempoIO = -1;
-                    sem_post(&sem_procesos_en_ready);
+                    
                 }
 
                 if (!queue_is_empty(dispositivo->cola_procesos)) {
                     t_pcb* siguiente = queue_pop(dispositivo->cola_procesos);
                     usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempoIO);
                 }
-
                 break;
             }
 
