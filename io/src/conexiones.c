@@ -1,8 +1,5 @@
-#include "sockets.h"
-#include "utils/libs/logger.h"
-#include "utils/libs/config.h"
-#include "utils/structs.h"
 #include "conexiones.h"
+
 int socket_kernel;
 
 void comprobarSocket(int socket, char* moduloOrigen, char* moduloDestino){
@@ -46,7 +43,6 @@ void escuchar_pedidos_io() {
                 // Recibir paquete con PID y tiempo
                 t_paquete* paquete = recibir_paquete(socket_kernel);
                 int offset = 0;
-
                 int pid;
                 memcpy(&pid, paquete->buffer->stream + offset, sizeof(int));
                 offset += sizeof(int);
@@ -57,8 +53,10 @@ void escuchar_pedidos_io() {
                 eliminar_paquete(paquete);
 
                 log_info(logger, "## PID: %d - Inicio de IO - Tiempo: %d", pid, tiempo);
-                usleep(tiempo * 1000);  // Convertimos a microsegundos, me deja dudas si esto va con el 1000
 
+                usleep(tiempo*1000); //Hace E/S
+
+                log_info(logger, "Tiempo de IO efectuado: %dms", tiempo);
                 log_info(logger, "## PID: %d - Fin de IO", pid);
 
                 enviar_opcode(FIN_IO, socket_kernel);

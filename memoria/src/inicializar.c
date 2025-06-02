@@ -1,6 +1,5 @@
 #include "inicializar.h"
 
-
 void inicializar_memoria() {
     cantidad_frames = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
 
@@ -14,6 +13,8 @@ void inicializar_memoria() {
     log_info(logger, "Memoria inicializada con %d frames de %d bytes", cantidad_frames, configMEMORIA.tam_pagina);
 
     procesos_en_memoria = list_create();
+    paginas_en_swap = list_create();
+
 
 }
 
@@ -21,30 +22,62 @@ t_tabla_nivel* crear_tabla_nivel(int nivel_actual, int nivel_maximo) {
     t_tabla_nivel* tabla = malloc(sizeof(t_tabla_nivel));
     tabla->entradas = malloc(sizeof(t_entrada_pagina*) * configMEMORIA.entradas_por_tabla);
 
+
     for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++) {
-        if (nivel_actual == nivel_maximo) {
-            // ultimo nivel apuntan a marcos (inicialmente no asignados. TENGO QUE REPASAR)
-            tabla->entradas[i] = malloc(sizeof(t_entrada_pagina));
-            tabla->entradas[i]->marco = 0;       // No tiene marco aún
-            tabla->entradas[i]->presencia = false;
-            tabla->entradas[i]->uso = false;
-            tabla->entradas[i]->modificado = false;
-        } else {
-            // Apuntan a otra tabla
-            tabla->entradas[i] = (t_entrada_pagina*)crear_tabla_nivel(nivel_actual + 1, nivel_maximo);
-        }
+        tabla->entradas[i] = NULL;
     }
 
     return tabla;
 }
 
-void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tamanio) {
+
+void asignar_marcos_a_paginas(t_tabla_nivel* tabla, int nivel_actual, int nivel_maximo, int* paginas_asignadas, int total_paginas) {
+    for (int i = 0; i < configMEMORIA.entradas_por_tabla && *paginas_asignadas < total_paginas; i++) {
+        if (nivel_actual == nivel_maximo) {
+            tabla->entradas[i] = malloc(sizeof(t_entrada_pagina));
+            int frame = buscar_frame_libre();
+            tabla->entradas[i]->marco = frame;
+            tabla->entradas[i]->presencia = true;
+            tabla->entradas[i]->uso = false;
+            tabla->entradas[i]->modificado = false;
+            (*paginas_asignadas)++;
+        } else {
+            tabla->entradas[i] = (t_entrada_pagina*) crear_tabla_nivel(nivel_actual + 1, nivel_maximo);
+            asignar_marcos_a_paginas((t_tabla_nivel*)tabla->entradas[i], nivel_actual + 1, nivel_maximo, paginas_asignadas, total_paginas);
+        }
+    }
+}
+
+int buscar_frame_libre() {
+    for (int i = 0; i < bitarray_get_max_bit(bitmap_frames); i++) {
+        if (!bitarray_test_bit(bitmap_frames, i)) {
+            bitarray_set_bit(bitmap_frames, i);
+            return i;
+        }
+    }
+    return -1; // No deberia pasar si ya se verifico antes
+}
+
+void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tamanio, uint32_t paginas_necesarias) {
     t_proceso_en_memoria* nuevo = malloc(sizeof(t_proceso_en_memoria));
     nuevo->pid = pid;
     nuevo->tamanio = tamanio;
     nuevo->nombre_archivo = strdup(nombre_archivo); 
+    nuevo->paginas_necesarias = paginas_necesarias;
+    
+
+
+    nuevo->metricas.accesos_tablas_paginas = 0;
+    nuevo->metricas.instrucciones_solicitadas = 0;
+    nuevo->metricas.bajadas_a_swap = 0;
+    nuevo->metricas.subidas_de_swap = 0;
+    nuevo->metricas.lecturas_memoria = 0;
+    nuevo->metricas.escrituras_memoria = 0;
 
     nuevo->tabla_nivel_1 = crear_tabla_nivel(1, configMEMORIA.cantidad_niveles);
+
+    int paginas_asignadas = 0;
+    asignar_marcos_a_paginas(nuevo->tabla_nivel_1, 1, configMEMORIA.cantidad_niveles, &paginas_asignadas, paginas_necesarias);
 
     // Inicializar y cargar las instrucciones directamente
     nuevo->instrucciones = list_create();
@@ -52,7 +85,7 @@ void crear_estructuras_para_proceso(uint32_t pid, char* nombre_archivo, int tama
 
     list_add(procesos_en_memoria, nuevo);
 
-    log_info(logger, "Se inicializaron estructuras y cargaron instrucciones para el proceso %d", pid);
+    log_info(logger, "Se inicializaron estructuras, se asignaron marcos y se cargaron instrucciones para el proceso %d", pid);
 }
 
 
@@ -83,3 +116,46 @@ void cargar_instrucciones(t_list* lista_instrucciones, char* nombre_archivo) {
 
 
 
+void log_metricas_proceso(t_proceso_en_memoria* proceso) {
+    log_info(logger, "## PID: %d - Proceso Destruido - Metricas - Acc.T.Pag: %d; Inst.Sol.: %d; SWAP: %d; Mem.Prin.: %d; Lec.Mem.: %d; Esc.Mem.: %d",
+        proceso->pid,
+        proceso->metricas.accesos_tablas_paginas,
+        proceso->metricas.instrucciones_solicitadas,
+        proceso->metricas.bajadas_a_swap,
+        proceso->metricas.subidas_de_swap,
+        proceso->metricas.lecturas_memoria,
+        proceso->metricas.escrituras_memoria);
+}
+void liberar_marcos_de_proceso(t_tabla_nivel* tabla, int nivel_actual) {
+    for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++) {
+        if (nivel_actual == configMEMORIA.cantidad_niveles) {
+            t_entrada_pagina* entrada = tabla->entradas[i];
+            if (!entrada) continue;  
+
+            if (entrada->presencia) {
+                bitarray_clean_bit(bitmap_frames, entrada->marco);
+            }
+            free(entrada);
+        } else {
+            if (tabla->entradas[i]) 
+                liberar_marcos_de_proceso((t_tabla_nivel*) tabla->entradas[i], nivel_actual + 1);
+        }
+    }
+    free(tabla->entradas);
+    free(tabla);
+}
+
+
+
+
+void liberar_proceso_en_memoria(t_proceso_en_memoria* proceso) {
+    liberar_marcos_de_proceso(proceso->tabla_nivel_1, 1);
+
+    bool eliminado = list_remove_element(procesos_en_memoria, proceso);
+    log_trace(logger, "Proceso %d removido de lista: %s", proceso->pid, eliminado ? "sí" : "no");
+
+    free(proceso->nombre_archivo);
+    list_remove_element(procesos_en_memoria, proceso); // elimina de la lista global
+    free(proceso);
+
+}

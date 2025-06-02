@@ -1,8 +1,4 @@
-#include "globales.h"
 #include "inicializar.h"
-#include "../../utils/src/utils/structs.h"
-#include <sys/time.h>
-#include "planificador.h"
 
 t_list* cpus;
 t_list* ios;
@@ -19,6 +15,9 @@ t_list* pcbs = NULL;
 
 sem_t sem_procesos_en_new;
 sem_t sem_procesos_en_ready;
+sem_t sem_procesos_en_blocked;
+sem_t sem_procesos_en_suspReady;
+sem_t sem_procesos_que_van_a_ready;
 
 pthread_mutex_t mutex_new;
 pthread_mutex_t mutex_ready;
@@ -41,6 +40,10 @@ void inicializarEstados() {
     pcbs = list_create();
     sem_init(&sem_procesos_en_new, 0, 0);
     sem_init(&sem_procesos_en_ready, 0, 0);
+    sem_init(&sem_procesos_en_blocked, 0, 0);
+    sem_init(&sem_procesos_en_suspReady, 0, 0);
+    sem_init(&sem_procesos_que_van_a_ready, 0, 0);
+
     sem_init(&sem_cpu_disponible, 0, 0);
 
     pthread_mutex_init(&mutex_new, NULL);
@@ -115,10 +118,12 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
     nuevo_pcb->estado_actual = -1;
     nuevo_pcb->momento_entrada_estado = get_timestamp();
     nuevo_pcb->metricas = list_create();
-    nuevo_pcb->estimacion_rafaga = configKERNEL.estimacion_inicial; 
-    nuevo_pcb->rafaga_real = 0;
+    nuevo_pcb->estimacion_rafaga = configKERNEL.estimacion_inicial;
+    nuevo_pcb->estimacion_anterior = 0;
+    nuevo_pcb->rafaga_anterior = 0;
     nuevo_pcb->archivo_pseudocodigo = strdup(archivo_pseudocodigo);
     nuevo_pcb->tiempoIO = -1;
+    nuevo_pcb->timer_flag = -1;
     
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
     list_add(pcbs, nuevo_pcb);
@@ -135,6 +140,17 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     metrica->cantVeces++;
     metrica->tiempoTotal += duracion;
 
+    if(pcb->estado_actual == EXEC){
+        pcb->rafaga_anterior = duracion;
+        pcb->estimacion_anterior = pcb->estimacion_rafaga;
+        log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %dms", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
+    }
+
+    if(pcb->estado_actual == BLOCKED && nuevo_estado == READY && strcmp(configKERNEL.algoritmo_planificacion, "FIFO") != 0){
+        pcb->estimacion_rafaga = calcularEstimacion(pcb);
+        log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
+    }
+
     // Remover PCB de su cola anterior
     remover_de_cola(pcb, pcb->estado_actual);
     //log_info(logger, "PCB removido de la cola actual");
@@ -142,7 +158,7 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     // Actualizar estado
     pcb->estado_actual = nuevo_estado;
     pcb->momento_entrada_estado = ahora;
-   
+
     if(nuevo_estado == BLOCKED){
         pcb->pc++;
     }
@@ -152,6 +168,12 @@ void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     
     log_info(logger, "## (%d) Pasa del estado %s al estado %s", 
              pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
+}
+
+int calcularEstimacion(t_pcb *pcb){
+    double alfa = configKERNEL.alfa;
+    int estimacion = alfa * pcb->rafaga_anterior + (1-alfa) * pcb->estimacion_anterior;
+    return estimacion;
 }
 
 void remover_de_cola(t_pcb* pcb, t_estado_proceso estado) {
@@ -198,6 +220,7 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
             list_add(cola_new, pcb);
             pthread_mutex_unlock(&mutex_new);
             sem_post(&sem_procesos_en_new);
+            sem_post(&sem_procesos_que_van_a_ready);
             break;
         case READY:
             pthread_mutex_lock(&mutex_ready);
@@ -214,6 +237,8 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
             pthread_mutex_lock(&mutex_susp_ready);
             list_add(cola_susp_ready, pcb);
             pthread_mutex_unlock(&mutex_susp_ready);
+            sem_post(&sem_procesos_en_suspReady);
+            sem_post(&sem_procesos_que_van_a_ready);
             break;
         case SUSP_BLOCKED:
             pthread_mutex_lock(&mutex_susp_blocked);
@@ -231,11 +256,7 @@ void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado) {
 } // AGARREMOS CON PINZAS LOS SEMAFOROS POST
 
 
-uint64_t get_timestamp() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (uint64_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000); // tremenda fruta pero vamos a ver que sale
-}
+
 
 t_metricas_estado* buscar_o_crear_metrica(t_list* metricas, t_estado_proceso estado) {
     for (int i = 0; i < list_size(metricas); i++) {

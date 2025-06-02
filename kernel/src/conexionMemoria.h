@@ -1,9 +1,9 @@
 #ifndef MEMORIA_UTILS_H
 #define MEMORIA_UTILS_H
 
+#include "conexionMemoria.h"
 #include "globales.h"
 #include "sockets.h"
-
 #include "utils/structs.h"
 
 int conectar_con_memoria();

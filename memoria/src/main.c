@@ -1,5 +1,4 @@
 #include "main.h"
-#include "configuracion.h"
 
 config_memoria_t configMEMORIA;
 t_log* logger;
@@ -8,6 +7,7 @@ int cantidad_frames;
 int frames_libres;
 void* memoria_fisica;
 t_list* procesos_en_memoria;
+t_list* paginas_en_swap;
 
 int main(int argc, char* argv[]) {
     cargarConfiguracionMemoria("memoria.config", &configMEMORIA, &logger);

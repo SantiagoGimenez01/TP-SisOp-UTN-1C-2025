@@ -31,7 +31,6 @@ typedef enum {
     INICIAR_PROCESO,
     ENVIAR_PCB,
     FINALIZAR_PROCESO,
-    SUSPENDER_PROCESO,
     SOLICITUD_IO,
     SOLICITUD_READ,
     SOLICITUD_WRITE,
@@ -50,7 +49,10 @@ typedef enum {
     CPU_LIBRE, 
     FIN_IO, 
     PEDIR_PAGINA_COMPLETA,
-    PEDIR_MARCO
+    PEDIR_MARCO,
+    ACTUALIZAR_PAGINA_COMPLETA,
+    SUSPENDER_PROCESO,
+    DESUSPENDER_PROCESO
 } t_opcode;
 
 typedef enum {
@@ -89,11 +91,12 @@ typedef struct {
     t_estado_proceso estado_actual;
     uint64_t momento_entrada_estado;
     t_list* metricas; // Lista de t_metricas_estado*
-    uint32_t estimacion_rafaga;   // Para SJF
-    uint32_t rafaga_real;         // Para actualizar estimacion
-    uint32_t rafaga_anterior;       
+    uint32_t estimacion_rafaga;   // Est(n+1)
+    uint32_t estimacion_anterior; // Est(n)         
+    uint32_t rafaga_anterior;     // R(n)  
     char* archivo_pseudocodigo;
     int tiempoIO;
+    int timer_flag;
 } t_pcb;
 
 

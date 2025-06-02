@@ -1,5 +1,4 @@
 #include "main.h"
-#include "configuracion.h"
 
 config_cpu_t configCPU;
 t_log* logger;

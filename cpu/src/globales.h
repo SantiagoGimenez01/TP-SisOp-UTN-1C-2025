@@ -15,6 +15,12 @@ extern int tam_pagina;
 extern int cant_entradas_por_tabla;
 extern int cantidad_niveles;
 
+extern t_list* cache_paginas;
+typedef struct {
+    t_instruccion_id id;
+    char** parametros;          // Vector de strings
+    int cantidad_parametros;  
+} t_instruccion;
 typedef struct {
     uint32_t numero_pagina;
     uint32_t* entradas_niveles;  // tamanio = cantidad_niveles
@@ -26,13 +32,14 @@ typedef struct {
     int marco;
     uint64_t ultima_uso; 
 } t_entrada_tlb;
-
 typedef struct {
     uint32_t nro_pagina;
-    char* contenido; //malloc tam pagina
+    uint32_t marco;
+    char* contenido;
     bool modificado;
-    bool uso;  
+    bool uso;
 } t_entrada_cache;
+
 
 extern t_list* tlb;
 extern t_list* cache_paginas;
