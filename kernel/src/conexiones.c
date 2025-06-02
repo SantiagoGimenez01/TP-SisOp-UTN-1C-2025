@@ -132,6 +132,28 @@ void operarDispatch(int socket_cliente) {
 
 void operarInterrupt(int socket_cliente) {
     log_info(logger, "Manejando conexion INTERRUPT");
+
+    while (1) {
+        t_opcode codigo_operacion;
+        int status = recv(socket_cliente, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
+
+        if (status <= 0) {
+            log_warning(logger, "Se cerro la conexion con CPU Interrupt (socket %d)", socket_cliente);
+            close(socket_cliente);
+            return;
+        }
+
+        switch (codigo_operacion) {
+            case CPU_LIBRE:
+                log_info(logger, "CPU en socket %d marco su disponibilidad (por interrupt)", socket_cliente);
+                marcar_cpu_como_libre(socket_cliente); 
+                break;
+
+            default:
+                log_warning(logger, "Codigo de operacion inesperado en INTERRUPT: %d", codigo_operacion);
+                break;
+        }
+    }
 }
 
 void operarIo(int socket_cliente) {

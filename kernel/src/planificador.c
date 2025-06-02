@@ -72,6 +72,14 @@ t_pcb* obtener_siguiente_de_ready() {
         int indexMasCorto = 0;
         obtenerIndiceDeProcesoMasCorto(cola_ready, &indexMasCorto);
         proceso = list_remove(cola_ready, indexMasCorto); 
+    } else if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0) {
+        int indexMasCorto = 0;
+        obtenerIndiceDeProcesoMasCorto(cola_ready, &indexMasCorto);
+        // Chequear si hay cpus libres
+            // Si no -> Buscar que procesos tienen mas tiempo restante que el nuevo estimado
+                // De esos procesos, buscar el que tiene el tiempo restante mas alto y desalojarlo para planificar el nuevo
+                // Si no es mas corto que ningun proceso en ejecucion, se queda en ready
+        proceso = list_remove(cola_ready, indexMasCorto); 
     } else { // FALTA SRT
         log_error(logger, "Algoritmo de planificacion desconocido: %s", configKERNEL.algoritmo_planificacion);
     }
