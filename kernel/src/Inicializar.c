@@ -59,6 +59,7 @@ void inicializarEstados() {
 
 void agregarNuevaCpuInc(int socket_cliente, int id_cpu) {
     t_cpu* nueva_cpu = malloc(sizeof(t_cpu));
+    nueva_cpu->pcb_exec = NULL;
     nueva_cpu->socket_dispatch = socket_cliente;
     nueva_cpu->socket_interrupt = -1; 
     nueva_cpu->disponible = 1;
@@ -124,6 +125,7 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
     nuevo_pcb->archivo_pseudocodigo = strdup(archivo_pseudocodigo);
     nuevo_pcb->tiempoIO = -1;
     nuevo_pcb->timer_flag = -1;
+    nuevo_pcb->timer_exec = nuevo_pcb->estimacion_rafaga;
     
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
     list_add(pcbs, nuevo_pcb);

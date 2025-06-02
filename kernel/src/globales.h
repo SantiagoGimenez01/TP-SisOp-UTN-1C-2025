@@ -13,7 +13,8 @@ extern t_list* ios;
 extern t_list* cpus_incompletas;
 extern t_list* pcbs;
 typedef struct {
-    int id;                  
+    int id;     
+    t_pcb* pcb_exec;
     int socket_dispatch;      
     int socket_interrupt;    
     int disponible;          
