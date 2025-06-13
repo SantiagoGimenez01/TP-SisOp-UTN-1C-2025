@@ -94,6 +94,7 @@ typedef struct {
     uint32_t estimacion_rafaga;   // Est(n+1)
     uint32_t estimacion_anterior; // Est(n)         
     uint32_t rafaga_anterior;     // R(n)  
+    uint32_t timer_exec;     // R(n)  
     char* archivo_pseudocodigo;
     int tiempoIO;
     int timer_flag;

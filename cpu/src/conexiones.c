@@ -87,12 +87,13 @@ void* escuchar_dispatch(void* arg) {
                 uint32_t pid = 0;
                 uint32_t pc = 0;
                 uint32_t estimacion = 0;
+                uint32_t timer_exec = 0;
 
-                recibir_pcb(socket_dispatch, &pid, &pc, &estimacion);
+                recibir_pcb(socket_dispatch, &pid, &pc, &estimacion, &timer_exec);
 
                 log_info(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
 
-                ejecutar_ciclo(pid, pc); 
+                ejecutar_ciclo(pid, pc, &timer_exec); 
                 //Aca termina de ejecutar el ciclo
                 enviar_opcode(CPU_LIBRE, socket_dispatch);
                 break;
@@ -120,8 +121,12 @@ void* escuchar_interrupt(void* arg) {
             case INTERRUPCION:
                 log_info(logger, "Se recibio una INTERRUPCION desde Kernel");
 
-                // ciclo de ejecución que debe detenerse
-                // interrumpir_proceso(); //
+                // Marcamos el flag de desalojo para interrumpir el ciclo
+                pthread_mutex_lock(&mutex_flag_desalojo);
+                flag_desalojo = true;
+                pthread_mutex_unlock(&mutex_flag_desalojo);
+
+                enviar_opcode(CPU_LIBRE, socket_dispatch);
 
                 break;
 
@@ -134,7 +139,7 @@ void* escuchar_interrupt(void* arg) {
     return NULL;
 }
 
-void recibir_pcb(int socket_dispatch, uint32_t* pid, uint32_t* pc, uint32_t* estimacion) {
+void recibir_pcb(int socket_dispatch, uint32_t* pid, uint32_t* pc, uint32_t* estimacion, uint32_t* timer_exec) {
     t_paquete* paquete = recibir_paquete(socket_dispatch);
 
     int offset = 0;
@@ -145,10 +150,13 @@ void recibir_pcb(int socket_dispatch, uint32_t* pid, uint32_t* pc, uint32_t* est
     offset += sizeof(uint32_t);
 
     memcpy(estimacion, paquete->buffer->stream + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    memcpy(timer_exec, paquete->buffer->stream + offset, sizeof(uint32_t));
 
     eliminar_paquete(paquete);
 
-    log_info(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d", *pid, *pc, *estimacion);
+    log_info(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d", *pid, *pc, *estimacion, *timer_exec);
 }
 
 

@@ -148,7 +148,32 @@ void operarInterrupt(int socket_cliente) {
                 log_info(logger, "CPU en socket %d marco su disponibilidad (por interrupt)", socket_cliente);
                 marcar_cpu_como_libre(socket_cliente); 
                 break;
+            case DESALOJAR_PROCESO:
+                log_info(logger, "Se recibio DESALOJAR_PROCESO desde CPU (socket %d)", socket_cliente);
+                
+                t_paquete* paquete = recibir_paquete(socket_cliente);
+                uint32_t pid, pc, timer_exec;
+                memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
+                memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
+                memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t) + sizeof(uint32_t), sizeof(uint32_t));
+                
+                eliminar_paquete(paquete);
 
+                log_info(logger, "Proceso desalojado: PID %d | PC %d", pid, pc);
+                
+                t_pcb* pcb = buscar_pcb_por_pid(pid);
+                if(pcb == NULL) {
+                    log_error(logger, "No se encontro el PCB para el PID %d", pid);
+                    break;
+                }
+                
+                pcb->pc = pc;
+                pcb->timer_exec = timer_exec;
+                cambiar_estado(pcb, READY);
+
+                sem_post(&sem_procesos_en_ready);
+
+                break;
             default:
                 log_warning(logger, "Codigo de operacion inesperado en INTERRUPT: %d", codigo_operacion);
                 break;

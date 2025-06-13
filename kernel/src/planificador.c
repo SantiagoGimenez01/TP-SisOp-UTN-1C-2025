@@ -251,11 +251,13 @@ void *planificador_corto_plazo(void *arg)
     while (1)
     {
         log_info(logger, "Entro a corto plazo");
-        // Esperar que haya al menos una CPU libre
+
         t_cpu *cpu = NULL;
+
+        // Esperamos que haya al menos un proceso en READY
+        sem_wait(&sem_procesos_en_ready);
         // Chequeamos si el planificador es SRT entonces buscamos una CPU libre
         // en caso de no haber, dame la que tenga el PCB con timer mas largo
-
         if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
         {
             cpu = obtener_cpu_libre();
@@ -269,9 +271,6 @@ void *planificador_corto_plazo(void *arg)
             sem_wait(&sem_cpu_disponible);
             cpu = obtener_cpu_libre();
         }
-        log_info(logger, "Obtuvo cpu libre");
-        // Esperamos que haya al menos un proceso en READY
-        sem_wait(&sem_procesos_en_ready);
         // log_info(logger, "Paso el wait de procesos en ready");
         t_pcb *proceso = obtener_siguiente_de_ready();
         // log_info(logger, "## (%d) Fue encontrado en ready", proceso->pid);
@@ -282,22 +281,29 @@ void *planificador_corto_plazo(void *arg)
             // sem_post(&sem_cpu_disponible);
             continue;
         }
+
         log_info(logger, "CPU: %i | Proceso: %i", cpu->id, proceso->pid);
-        if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && proceso->timer_exec < cpu->pcb_exec->timer_exec)
+        if(cpu->pcb_exec == NULL) {
+            log_info(logger, "CPU no tiene proceso ejecutando.");
+        }
+        if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && cpu->pcb_exec != NULL)
         {
-            cambiar_estado(cpu->pcb_exec, READY);
-            cpu->pcb_exec = NULL;
-            enviar_opcode(DESALOJAR_PROCESO, cpu->socket_interrupt);
+            if (proceso->timer_exec < cpu->pcb_exec->timer_exec)
+            {
+                log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, proceso->pid);
+                enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
+                cpu->pcb_exec = NULL;
+            } else {
+                log_info(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, proceso->pid);
+                log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, proceso->pid, proceso->timer_exec);
+                continue;
+            }
         }
 
         cpu->pcb_exec = proceso;
         cambiar_estado(proceso, EXEC);
         enviar_opcode(EJECUTAR_PROCESO, cpu->socket_dispatch);
         enviar_proceso(cpu, proceso);
-        pthread_t hilo_timer;
-        pthread_create(&hilo_timer, NULL, decrementar_timer_pcb, proceso);
-        pthread_detach(hilo_timer);
-
         log_info(logger, "Proceso %d enviado a ejecucion en CPU %d", proceso->pid, cpu->id);
     }
 
@@ -366,12 +372,13 @@ void enviar_proceso(t_cpu *cpu, t_pcb *pcb)
     agregar_int_a_paquete(paquete, pcb->pid);
     agregar_int_a_paquete(paquete, pcb->pc);
     agregar_int_a_paquete(paquete, pcb->estimacion_rafaga);
+    agregar_int_a_paquete(paquete, pcb->timer_exec);
 
     enviar_paquete(paquete, cpu->socket_dispatch);
     eliminar_paquete(paquete);
 
-    log_info(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d",
-             cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga);
+    log_info(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d",
+             cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga, pcb->timer_exec);
 }
 
 void agregar_double_a_paquete(t_paquete *paquete, double valor)

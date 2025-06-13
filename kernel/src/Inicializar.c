@@ -137,7 +137,6 @@ void inicializar_proceso(char* archivo_pseudocodigo, int tamanio) {
 void cambiar_estado(t_pcb* pcb, t_estado_proceso nuevo_estado) {
     uint64_t ahora = get_timestamp();
     uint64_t duracion = ahora - pcb->momento_entrada_estado;
-
     t_metricas_estado* metrica = buscar_o_crear_metrica(pcb->metricas, pcb->estado_actual);
     metrica->cantVeces++;
     metrica->tiempoTotal += duracion;
@@ -315,6 +314,7 @@ void marcar_cpu_como_libre(int socket_dispatch) {
         t_cpu* cpu = list_get(cpus, i);
         if (cpu->socket_dispatch == socket_dispatch) {
             cpu->disponible = true;
+            cpu->pcb_exec = NULL;
             log_info(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_dispatch);
             break;
         }

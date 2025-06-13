@@ -16,7 +16,6 @@ int conectar_con_memoria() {
 
 bool solicitar_espacio_a_memoria(t_pcb* pcb) {
     int socket_memoria = conectar_con_memoria(); 
-
     if (socket_memoria < 0) {
         log_error(logger, "No se pudo conectar a Memoria para INICIAR PROCESO %d", pcb->pid);
         return false;
