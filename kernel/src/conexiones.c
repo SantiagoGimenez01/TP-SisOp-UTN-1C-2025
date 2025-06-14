@@ -1,23 +1,28 @@
 #include "conexiones.h"
 
 // --- Funciones auxiliares para cada puerto ---
-void comprobacionModulo(t_modulo modulo_origen, t_modulo esperado, char* modulo, void (*operacion)(int),int socket_cliente){
+void comprobacionModulo(t_modulo modulo_origen, t_modulo esperado, char *modulo, void (*operacion)(int), int socket_cliente)
+{
 
-    if (modulo_origen == esperado) {
+    if (modulo_origen == esperado)
+    {
         log_info(logger, "Se conecto %s", modulo);
         operacion(socket_cliente); // Operaciones de modulos
-    }else{
+    }
+    else
+    {
         log_warning(logger, "No es %s", modulo);
         close(socket_cliente);
     }
-
 }
 
-void* escuchar_dispatch(void* socket_servidor_void) {
+void *escuchar_dispatch(void *socket_servidor_void)
+{
     int socket_servidor = (intptr_t)socket_servidor_void;
     log_info(logger, "Servidor KERNEL_DISPATCH escuchando conexiones.");
 
-    while (1) {
+    while (1)
+    {
         int socket_cliente = esperarCliente(socket_servidor, logger);
         int id_cpu;
         recv(socket_cliente, &id_cpu, sizeof(int), 0);
@@ -33,17 +38,18 @@ void* escuchar_dispatch(void* socket_servidor_void) {
     return NULL;
 }
 
-
-void* escuchar_interrupt(void* socket_servidor_void) {
+void *escuchar_interrupt(void *socket_servidor_void)
+{
     int socket_servidor = (intptr_t)socket_servidor_void;
     log_info(logger, "Servidor KERNEL_INTERRUPT escuchando conexiones.");
 
-    while (1) {
+    while (1)
+    {
         int socket_cliente = esperarCliente(socket_servidor, logger);
         int id_cpu;
         recv(socket_cliente, &id_cpu, sizeof(int), 0);
         log_info(logger, "CPU ID recibido: %d en socket FD: %d", id_cpu, socket_cliente);
-        agregarNuevaCpu(socket_cliente, id_cpu); // Terminamos de completar la nueva CPU 
+        agregarNuevaCpu(socket_cliente, id_cpu); // Terminamos de completar la nueva CPU
         log_info(logger, "CPUs incompletas: %d, CPUs completas: %d", list_size(cpus_incompletas), list_size(cpus));
         sem_post(&sem_cpu_disponible);
         t_modulo modulo_origen;
@@ -53,11 +59,13 @@ void* escuchar_interrupt(void* socket_servidor_void) {
     return NULL;
 }
 
-void* escuchar_io(void* socket_servidor_void) {
+void *escuchar_io(void *socket_servidor_void)
+{
     int socket_servidor = (intptr_t)socket_servidor_void;
     log_info(logger, "Servidor KERNEL_IO escuchando conexiones.");
 
-    while (1) {
+    while (1)
+    {
         int socket_cliente = esperarCliente(socket_servidor, logger);
 
         t_modulo modulo_origen;
@@ -70,7 +78,8 @@ void* escuchar_io(void* socket_servidor_void) {
 
 // --- Funcion principal ---
 
-void establecerConexiones() {
+void establecerConexiones()
+{
     // Iniciar 3 servidores TCP (en teoria como entendi deberia ser asi...)
     int socket_dispatch = iniciarServidor(string_itoa(configKERNEL.puerto_escucha_dispatch), logger, "KERNEL_DISPATCH");
     int socket_interrupt = iniciarServidor(string_itoa(configKERNEL.puerto_escucha_interrupt), logger, "KERNEL_INTERRUPT");
@@ -78,9 +87,9 @@ void establecerConexiones() {
 
     // Crear 3 hilos para escuchar en paralelo
     pthread_t hilo_dispatch, hilo_interrupt, hilo_io;
-    pthread_create(&hilo_dispatch, NULL, escuchar_dispatch, (void*)(intptr_t)socket_dispatch);
-    pthread_create(&hilo_interrupt, NULL, escuchar_interrupt, (void*)(intptr_t)socket_interrupt);
-    pthread_create(&hilo_io, NULL, escuchar_io, (void*)(intptr_t)socket_io);
+    pthread_create(&hilo_dispatch, NULL, escuchar_dispatch, (void *)(intptr_t)socket_dispatch);
+    pthread_create(&hilo_interrupt, NULL, escuchar_interrupt, (void *)(intptr_t)socket_interrupt);
+    pthread_create(&hilo_io, NULL, escuchar_io, (void *)(intptr_t)socket_io);
 
     pthread_detach(hilo_dispatch);
     pthread_detach(hilo_interrupt);
@@ -89,173 +98,201 @@ void establecerConexiones() {
     // El Kernel sigue ejecutando otras cosas mientras estos hilos aceptan clientes, cada uno tiene un bucle esperando muchas instancias
 }
 
-
-
-
-void operarDispatch(int socket_cliente) {
+void operarDispatch(int socket_cliente)
+{
     log_info(logger, "Manejando conexion DISPATCH");
 
-    while (1) {
+    while (1)
+    {
         t_opcode codigo_operacion;
         int status = recv(socket_cliente, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
 
-        if (status <= 0) {
+        if (status <= 0)
+        {
             log_warning(logger, "Se cerro la conexion con CPU Dispatch (socket %d)", socket_cliente);
             close(socket_cliente);
             return;
         }
 
-        switch (codigo_operacion) {
-            case SYSCALL:
-                log_info(logger, "Se recibio una SYSCALL desde CPU (socket %d)", socket_cliente);
-                
-                t_paquete* paquete = recibir_paquete(socket_cliente);
-                procesar_syscall(paquete, socket_cliente);
-                eliminar_paquete(paquete);
+        switch (codigo_operacion)
+        {
+        case SYSCALL:
+            log_info(logger, "Se recibio una SYSCALL desde CPU (socket %d)", socket_cliente);
 
-                break;
+            t_paquete *paquete = recibir_paquete(socket_cliente);
+            procesar_syscall(paquete, socket_cliente);
+            eliminar_paquete(paquete);
 
-            case CPU_LIBRE:
-                log_info(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
-                marcar_cpu_como_libre(socket_cliente); 
-                //sem_post(&sem_cpu_disponible); 
             break;
 
-            default:
-                log_warning(logger, "Codigo de operacion inesperado en DISPATCH: %d", codigo_operacion);
-                break;
+        case CPU_LIBRE:
+            log_info(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
+            marcar_cpu_como_libre(socket_cliente);
+            // sem_post(&sem_cpu_disponible);
+            break;
+
+        case RESPUESTA_ESTIMACION:
+            log_info(logger, "Se recibio RESPUESTA_ESTIMACION del CPU (socket %d)", socket_cliente);
+
+            t_paquete *paquete_estimacion = recibir_paquete(socket_cliente);
+            uint32_t estimacion_restante_cpu;
+            memcpy(&estimacion_restante_cpu, paquete_estimacion->buffer->stream, sizeof(uint32_t));
+            eliminar_paquete(paquete_estimacion);
+            t_cpu *cpu = obtener_cpu_por_socket(socket_cliente);
+
+            cpu->pcb_exec->timer_exec = estimacion_restante_cpu;
+            sem_post(&respuesta_estimacion);
+            // sem_post(&sem_cpu_disponible);
+            break;
+
+        default:
+            log_warning(logger, "Codigo de operacion inesperado en DISPATCH: %d", codigo_operacion);
+            break;
         }
     }
 }
 
-
-
-void operarInterrupt(int socket_cliente) {
+void operarInterrupt(int socket_cliente)
+{
     log_info(logger, "Manejando conexion INTERRUPT");
 
-    while (1) {
+    while (1)
+    {
         t_opcode codigo_operacion;
         int status = recv(socket_cliente, &codigo_operacion, sizeof(t_opcode), MSG_WAITALL);
 
-        if (status <= 0) {
+        if (status <= 0)
+        {
             log_warning(logger, "Se cerro la conexion con CPU Interrupt (socket %d)", socket_cliente);
             close(socket_cliente);
             return;
         }
 
-        switch (codigo_operacion) {
-            case CPU_LIBRE:
-                log_info(logger, "CPU en socket %d marco su disponibilidad (por interrupt)", socket_cliente);
-                marcar_cpu_como_libre(socket_cliente); 
-                break;
-            case DESALOJAR_PROCESO:
-                log_info(logger, "Se recibio DESALOJAR_PROCESO desde CPU (socket %d)", socket_cliente);
-                
-                t_paquete* paquete = recibir_paquete(socket_cliente);
-                uint32_t pid, pc, timer_exec;
-                memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
-                memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
-                memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t) + sizeof(uint32_t), sizeof(uint32_t));
-                
-                eliminar_paquete(paquete);
+        switch (codigo_operacion)
+        {
+        case CPU_LIBRE:
+            log_info(logger, "CPU en socket %d marco su disponibilidad (por interrupt)", socket_cliente);
+            marcar_cpu_como_libre(socket_cliente);
+            break;
+        case DESALOJAR_PROCESO:
+            log_info(logger, "Se recibio DESALOJAR_PROCESO desde CPU (socket %d)", socket_cliente);
 
-                log_info(logger, "Proceso desalojado: PID %d | PC %d", pid, pc);
-                
-                t_pcb* pcb = buscar_pcb_por_pid(pid);
-                if(pcb == NULL) {
-                    log_error(logger, "No se encontro el PCB para el PID %d", pid);
-                    break;
-                }
-                
-                pcb->pc = pc;
-                pcb->timer_exec = timer_exec;
-                cambiar_estado(pcb, READY);
+            t_paquete *paquete = recibir_paquete(socket_cliente);
+            uint32_t pid, pc, timer_exec;
+            memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
+            memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
+            memcpy(&timer_exec, paquete->buffer->stream + sizeof(uint32_t) + sizeof(uint32_t), sizeof(uint32_t));
 
-                sem_post(&sem_procesos_en_ready);
+            eliminar_paquete(paquete);
 
+            log_info(logger, "Proceso desalojado: PID %d | PC %d", pid, pc);
+
+            t_pcb *pcb = buscar_pcb_por_pid(pid);
+            if (pcb == NULL)
+            {
+                log_error(logger, "No se encontro el PCB para el PID %d", pid);
                 break;
-            default:
-                log_warning(logger, "Codigo de operacion inesperado en INTERRUPT: %d", codigo_operacion);
-                break;
+            }
+
+            pcb->pc = pc;
+            pcb->timer_exec = timer_exec;
+            cambiar_estado(pcb, READY);
+            marcar_cpu_como_libre(socket_cliente);
+            sem_post(&sem_procesos_en_ready);
+
+            break;
+        default:
+            log_warning(logger, "Codigo de operacion inesperado en INTERRUPT: %d", codigo_operacion);
+            break;
         }
     }
 }
 
-void operarIo(int socket_cliente) {
+void operarIo(int socket_cliente)
+{
     log_info(logger, "Registrando nuevo dispositivo IO...");
 
     t_opcode codOperacion;
     recv(socket_cliente, &codOperacion, sizeof(t_opcode), MSG_WAITALL);
 
-    if (codOperacion != INICIAR_IO) {
+    if (codOperacion != INICIAR_IO)
+    {
         log_error(logger, "Operacion inesperada. Se esperaba INICIAR_IO.");
         close(socket_cliente);
         return;
     }
-    
-    t_paquete* paquete = recibir_paquete(socket_cliente);
-    char* nombre_io = recibir_string_de_paquete(paquete);
+
+    t_paquete *paquete = recibir_paquete(socket_cliente);
+    char *nombre_io = recibir_string_de_paquete(paquete);
     eliminar_paquete(paquete);
 
     agregarNuevaIo(nombre_io, socket_cliente);
     log_info(logger, "IO %s registrado correctamente con socket %d", nombre_io, socket_cliente);
     free(nombre_io);
 
-    //recepcion de solicitudes
-    while (1) {
+    // recepcion de solicitudes
+    while (1)
+    {
         t_opcode op;
         int recv_bytes = recv(socket_cliente, &op, sizeof(op), MSG_WAITALL);
-        if (recv_bytes <= 0) {
+        if (recv_bytes <= 0)
+        {
             log_warning(logger, "Desconexion de IO (socket %d)", socket_cliente);
             break;
         }
 
-        switch (op) {
-            case FIN_IO: {
-                t_paquete* paquete = recibir_paquete(socket_cliente);
-                int pid;
-                memcpy(&pid, paquete->buffer->stream, sizeof(int));
-                eliminar_paquete(paquete);
+        switch (op)
+        {
+        case FIN_IO:
+        {
+            t_paquete *paquete = recibir_paquete(socket_cliente);
+            int pid;
+            memcpy(&pid, paquete->buffer->stream, sizeof(int));
+            eliminar_paquete(paquete);
 
-                t_io* dispositivo = buscar_io_por_socket(socket_cliente);
-                if (!dispositivo) {
-                    log_error(logger, "No se pudo identificar el IO por socket %d", socket_cliente);
-                    break;
-                }
-
-                log_info(logger, "Fin de IO: %s recibido del PID %d", dispositivo->nombre, pid);
-                dispositivo->disponible = 1;
-                dispositivo->pid_actual = -1;
-
-                t_pcb* pcb = buscar_pcb_por_pid(pid);
-
-                if (pcb) {                   
-                    if(pcb->estado_actual == BLOCKED){
-                        pcb->timer_flag = -1;  // invalida el timer
-                        //log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
-                        cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
-                        //sem_post(&sem_procesos_en_ready); Este creo que estaba de mas ya que ya se hace el sem_post cuando se agrega pcb a lista_ready
-                        //log_info(logger, "Se hizo un semPost de ready");
-                    }else{
-                        cambiar_estado(pcb, SUSP_READY);
-                    }
-                    pcb->tiempoIO = -1;
-                    
-                }
-
-                if (!queue_is_empty(dispositivo->cola_procesos)) {
-                    t_pcb* siguiente = queue_pop(dispositivo->cola_procesos);
-                    usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempoIO);
-                }
+            t_io *dispositivo = buscar_io_por_socket(socket_cliente);
+            if (!dispositivo)
+            {
+                log_error(logger, "No se pudo identificar el IO por socket %d", socket_cliente);
                 break;
             }
 
-            default:
-                log_warning(logger, "IO recibio opcode inesperado: %d", op);
-                break;
+            log_info(logger, "Fin de IO: %s recibido del PID %d", dispositivo->nombre, pid);
+            dispositivo->disponible = 1;
+            dispositivo->pid_actual = -1;
+
+            t_pcb *pcb = buscar_pcb_por_pid(pid);
+
+            if (pcb)
+            {
+                if (pcb->estado_actual == BLOCKED)
+                {
+                    pcb->timer_flag = -1; // invalida el timer
+                    // log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
+                    cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
+                    // sem_post(&sem_procesos_en_ready); Este creo que estaba de mas ya que ya se hace el sem_post cuando se agrega pcb a lista_ready
+                    // log_info(logger, "Se hizo un semPost de ready");
+                }
+                else
+                {
+                    cambiar_estado(pcb, SUSP_READY);
+                }
+                pcb->tiempoIO = -1;
+            }
+
+            if (!queue_is_empty(dispositivo->cola_procesos))
+            {
+                t_pcb *siguiente = queue_pop(dispositivo->cola_procesos);
+                usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempoIO);
+            }
+            break;
+        }
+
+        default:
+            log_warning(logger, "IO recibio opcode inesperado: %d", op);
+            break;
         }
     }
 
     close(socket_cliente);
 }
-

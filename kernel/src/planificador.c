@@ -234,13 +234,10 @@ void *planificador_largo_plazo(void *arg)
     return NULL;
 }
 
-void *decrementar_timer_pcb(void *arg)
-{
-    t_pcb *pcb = (t_pcb *)arg;
-    while (1)
-    {
-        pcb->timer_exec--;
-    }
+void consultar_timer_exec(t_cpu* cpu) {
+    log_info(logger, "Consultando estimacion de ejecucion restante a CPU %d", cpu->id);
+
+    enviar_opcode(CONSULTAR_ESTIMACION_RESTANTE, cpu->socket_dispatch);
 }
 
 void *planificador_corto_plazo(void *arg)
@@ -288,9 +285,12 @@ void *planificador_corto_plazo(void *arg)
         }
         if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && cpu->pcb_exec != NULL)
         {
-            if (proceso->timer_exec < cpu->pcb_exec->timer_exec)
+            consultar_timer_exec(cpu);
+            sem_wait(&respuesta_estimacion);
+            if (proceso->estimacion_rafaga < cpu->pcb_exec->timer_exec)
             {
                 log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, proceso->pid);
+                log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, proceso->pid, proceso->estimacion_rafaga);
                 enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
                 cpu->pcb_exec = NULL;
             } else {

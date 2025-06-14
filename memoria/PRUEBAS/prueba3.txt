@@ -6,7 +6,7 @@ NOOP
 NOOP
 NOOP
 NOOP
-IO teclado 7000
+IO teclado 3000
 NOOP
 NOOP
 EXIT

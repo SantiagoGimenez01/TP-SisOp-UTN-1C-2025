@@ -8,6 +8,8 @@ int socket_dispatch = -1;
 int socket_interrupt = -1;
 bool flag_desalojo = false;
 pthread_mutex_t mutex_flag_desalojo;
+uint32_t estimacion_restante;
+
 int main(int argc, char* argv[]) {
 
     if (argc < 2) {
