@@ -13,7 +13,7 @@ void establecerConexiones(int id_cpu);
 void escucharOperaciones();
 void* escuchar_dispatch(void* arg);
 void* escuchar_interrupt(void* arg);
-void recibir_pcb(int socket_dispatch, uint32_t* pid, uint32_t* pc, uint32_t* estimacion, uint32_t* timer_exec);
+void recibir_pcb(int socket_dispatch, uint32_t* pid, uint32_t* pc, uint32_t* estimacion);
 
 
 #endif

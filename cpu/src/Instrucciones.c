@@ -8,15 +8,13 @@ bool check_interrupt()
     return interrupcion;
 }
 
-void enviar_estado_proc_kernel(uint32_t pid, uint32_t pc, uint32_t* estimacion_restante) {
+void enviar_estado_proc_kernel(uint32_t pid, uint32_t pc) {
     log_info(logger, "CPU (PID %d): Enviando estado del proceso a kernel.", pid);
 
     enviar_opcode(DESALOJAR_PROCESO, socket_interrupt);
     t_paquete* paquete = crear_paquete();
     agregar_int_a_paquete(paquete, pid);
     agregar_int_a_paquete(paquete, pc);
-    agregar_int_a_paquete(paquete, estimacion_restante);
-
 
     enviar_paquete(paquete, socket_interrupt);
     eliminar_paquete(paquete);
@@ -36,14 +34,13 @@ void ejecutar_ciclo(uint32_t pid, uint32_t pc)
         // Fase 3: EXECUTE
         ejecutando = ejecutar_instruccion(inst, pid, &pc);
 
-        estimacion_restante--;
         // Fase 4: CHECK INTERRUPT
         if (check_interrupt())
         {
             log_info(logger, "Proceso %d desalojado", pid);
            
             // Envia el estado del proceso al Kernel
-            enviar_estado_proc_kernel(pid, pc, estimacion_restante);
+            enviar_estado_proc_kernel(pid, pc);
 
             // Reiniciamos el flag de desalojo
             pthread_mutex_lock(&mutex_flag_desalojo);

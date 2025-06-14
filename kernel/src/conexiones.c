@@ -131,20 +131,6 @@ void operarDispatch(int socket_cliente)
             // sem_post(&sem_cpu_disponible);
             break;
 
-        case RESPUESTA_ESTIMACION:
-            log_info(logger, "Se recibio RESPUESTA_ESTIMACION del CPU (socket %d)", socket_cliente);
-
-            t_paquete *paquete_estimacion = recibir_paquete(socket_cliente);
-            uint32_t estimacion_restante_cpu;
-            memcpy(&estimacion_restante_cpu, paquete_estimacion->buffer->stream, sizeof(uint32_t));
-            eliminar_paquete(paquete_estimacion);
-            t_cpu *cpu = obtener_cpu_por_socket(socket_cliente);
-
-            cpu->pcb_exec->timer_exec = estimacion_restante_cpu;
-            sem_post(&respuesta_estimacion);
-            // sem_post(&sem_cpu_disponible);
-            break;
-
         default:
             log_warning(logger, "Codigo de operacion inesperado en DISPATCH: %d", codigo_operacion);
             break;

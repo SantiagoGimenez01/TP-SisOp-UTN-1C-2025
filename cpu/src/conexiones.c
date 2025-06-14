@@ -94,26 +94,13 @@ void *escuchar_dispatch(void *arg)
             uint32_t pid = 0;
             uint32_t pc = 0;
             uint32_t estimacion = 0;
-            uint32_t timer_exec = 0;
 
-            recibir_pcb(socket_dispatch, &pid, &pc, &estimacion, &timer_exec);
+            recibir_pcb(socket_dispatch, &pid, &pc, &estimacion);
 
             log_info(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
-            estimacion_restante = estimacion;
             ejecutar_ciclo(pid, pc);
             // Aca termina de ejecutar el ciclo
             enviar_opcode(CPU_LIBRE, socket_dispatch);
-            break;
-        case CONSULTAR_ESTIMACION_RESTANTE:
-            log_info(logger, "Se recibio CONSULTAR_ESTIMACION_RESTANTE por DISPATCH");
-
-            uint32_t timer_exec_actual = estimacion_restante;
-            t_paquete *paquete = crear_paquete();
-
-            agregar_int_a_paquete(paquete, timer_exec_actual);
-            enviar_paquete(paquete, socket_dispatch);
-            eliminar_paquete(paquete);
-            log_info(logger, "Enviada estimacion restante actual: %d", timer_exec_actual);
             break;
         default:
             log_warning(logger, "Código de operacion no reconocido en DISPATCH: %d", codigo_operacion);
@@ -160,7 +147,7 @@ void *escuchar_interrupt(void *arg)
     return NULL;
 }
 
-void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc, uint32_t *estimacion, uint32_t *timer_exec)
+void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc, uint32_t *estimacion)
 {
     t_paquete *paquete = recibir_paquete(socket_dispatch);
 
@@ -172,11 +159,8 @@ void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc, uint32_t *est
     offset += sizeof(uint32_t);
 
     memcpy(estimacion, paquete->buffer->stream + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    memcpy(timer_exec, paquete->buffer->stream + offset, sizeof(uint32_t));
 
     eliminar_paquete(paquete);
 
-    log_info(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d", *pid, *pc, *estimacion, *timer_exec);
+    log_info(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d", *pid, *pc, *estimacion);
 }

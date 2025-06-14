@@ -82,6 +82,14 @@ t_pcb *obtener_siguiente_de_ready()
     {
         // Indice del ultimo ready, osea el que acaba de llegar
         proceso = list_remove(cola_ready, list_size(cola_ready) - 1);
+/*         if (!proceso)
+        {
+            log_info(logger, "Proceso no encontrado en index: %d", list_size(cola_ready) - 1);
+        }
+        else
+        {
+            log_info(logger, "PCB %d | Index %d", proceso->pid, list_size(cola_ready) - 1);
+        } */
     }
     else
     {
@@ -125,7 +133,7 @@ t_cpu *obtener_cpu_con_proc_mas_largo()
     pthread_mutex_lock(&mutex_cpus);
 
     t_cpu *cpu = list_get(cpus, 0);
-    log_info(logger, "ENtre");
+    // log_info(logger, "ENtre");
     for (int i = 1; i < list_size(cpus); i++)
     {
         t_cpu *cpu_menor = list_get(cpus, i);
@@ -148,7 +156,7 @@ t_cpu *obtener_cpu_libre()
         if (cpu->disponible)
         {
             cpu_libre = cpu;
-            cpu->disponible = false;
+            // cpu->disponible = false;
             break;
         }
     }
@@ -234,31 +242,29 @@ void *planificador_largo_plazo(void *arg)
     return NULL;
 }
 
-void consultar_timer_exec(t_cpu* cpu) {
-    log_info(logger, "Consultando estimacion de ejecucion restante a CPU %d", cpu->id);
-
-    enviar_opcode(CONSULTAR_ESTIMACION_RESTANTE, cpu->socket_dispatch);
-}
-
 void *planificador_corto_plazo(void *arg)
 {
 
-    log_info(logger, "Planifiacion de corto plazo iniciada");
+    log_info(logger, "Planificacion de corto plazo iniciada");
 
     while (1)
     {
-        log_info(logger, "Entro a corto plazo");
+        // log_info(logger, "Entro a corto plazo");
 
         t_cpu *cpu = NULL;
 
         // Esperamos que haya al menos un proceso en READY
-        sem_wait(&sem_procesos_en_ready);
+        /*         if (list_size(cola_ready) > 0)
+                {
+                    // sem_post(&sem_procesos_en_ready);
+                    sem_wait(&sem_procesos_en_ready);
+                } */
         // Chequeamos si el planificador es SRT entonces buscamos una CPU libre
         // en caso de no haber, dame la que tenga el PCB con timer mas largo
-        if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
+        if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && !list_is_empty(cpus))
         {
             cpu = obtener_cpu_libre();
-            if (cpu == NULL && !list_is_empty(cpus))
+            if (cpu == NULL)
             {
                 cpu = obtener_cpu_con_proc_mas_largo();
             }
@@ -271,36 +277,40 @@ void *planificador_corto_plazo(void *arg)
         // log_info(logger, "Paso el wait de procesos en ready");
         t_pcb *proceso = obtener_siguiente_de_ready();
         // log_info(logger, "## (%d) Fue encontrado en ready", proceso->pid);
+        // log_info(logger, "CPU %d", cpu->id);
         if (!proceso)
         {
             // log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
-            cpu->disponible = true;
+            // cpu->disponible = true;
             // sem_post(&sem_cpu_disponible);
             continue;
         }
-
         log_info(logger, "CPU: %i | Proceso: %i", cpu->id, proceso->pid);
-        if(cpu->pcb_exec == NULL) {
+        if (cpu->pcb_exec == NULL)
+        {
             log_info(logger, "CPU no tiene proceso ejecutando.");
         }
         if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && cpu->pcb_exec != NULL)
         {
-            consultar_timer_exec(cpu);
-            sem_wait(&respuesta_estimacion);
-            if (proceso->estimacion_rafaga < cpu->pcb_exec->timer_exec)
+            if (proceso->estimacion_rafaga < cpu->pcb_exec->estimacion_rafaga)
             {
                 log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, proceso->pid);
                 log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, proceso->pid, proceso->estimacion_rafaga);
                 enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
                 cpu->pcb_exec = NULL;
-            } else {
+            }
+            else
+            {
                 log_info(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, proceso->pid);
                 log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, proceso->pid, proceso->timer_exec);
+                log_info(logger, "a");
+                list_add(cola_ready, proceso);
                 continue;
             }
         }
 
         cpu->pcb_exec = proceso;
+        cpu->disponible = false;
         cambiar_estado(proceso, EXEC);
         enviar_opcode(EJECUTAR_PROCESO, cpu->socket_dispatch);
         enviar_proceso(cpu, proceso);
