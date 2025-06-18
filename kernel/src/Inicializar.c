@@ -156,7 +156,7 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
         log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %dms", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
     }
 
-    if (pcb->estado_actual == BLOCKED && nuevo_estado == READY && strcmp(configKERNEL.algoritmo_planificacion, "FIFO") != 0)
+    if ((pcb->estado_actual == BLOCKED || pcb->estado_actual == SUSP_READY) && nuevo_estado == READY && strcmp(configKERNEL.algoritmo_planificacion, "FIFO") != 0)
     {
         pcb->estimacion_rafaga = calcularEstimacion(pcb);
         log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);

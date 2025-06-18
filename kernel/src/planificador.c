@@ -250,30 +250,26 @@ void *planificador_corto_plazo(void *arg)
     while (1)
     {
         // log_info(logger, "Entro a corto plazo");
-
         t_cpu *cpu = NULL;
 
-        // Esperamos que haya al menos un proceso en READY
         /*         if (list_size(cola_ready) > 0)
                 {
-                    // sem_post(&sem_procesos_en_ready);
-                    sem_wait(&sem_procesos_en_ready);
-                } */
+                    // sem_post(&sem_procesos_en_ready);            
+                } 
+        */
         // Chequeamos si el planificador es SRT entonces buscamos una CPU libre
         // en caso de no haber, dame la que tenga el PCB con timer mas largo
-        if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && !list_is_empty(cpus))
-        {
+        if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && !list_is_empty(cpus)){
             cpu = obtener_cpu_libre();
             if (cpu == NULL)
-            {
                 cpu = obtener_cpu_con_proc_mas_largo();
-            }
-        }
-        else
-        {
+            
+        } else {
             sem_wait(&sem_cpu_disponible);
             cpu = obtener_cpu_libre();
         }
+        // Esperamos que haya al menos un proceso en READY
+        sem_wait(&sem_procesos_en_ready);
         // log_info(logger, "Paso el wait de procesos en ready");
         t_pcb *proceso = obtener_siguiente_de_ready();
         // log_info(logger, "## (%d) Fue encontrado en ready", proceso->pid);
@@ -281,7 +277,7 @@ void *planificador_corto_plazo(void *arg)
         if (!proceso)
         {
             // log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
-            // cpu->disponible = true;
+            cpu->disponible = true;
             // sem_post(&sem_cpu_disponible);
             continue;
         }
