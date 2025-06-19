@@ -341,13 +341,22 @@ void *timer_bloqueo(void *arg)
     log_info(logger, "##(%d) Comenzando timer...", pcb->pid);
     usleep(configKERNEL.tiempo_suspension * 1000); // Espera
     // Si todavia sigue bloqueado lo suspende
-    if (pcb->estado_actual == BLOCKED && pcb->timer_flag > 0)
-    {
+    if (pcb->estado_actual == BLOCKED && pcb->timer_flag > 0){
         log_info(logger, "##(%d) Suspendiendose...", pcb->pid);
         cambiar_estado(pcb, SUSP_BLOCKED);
+        int socket_memoria = conectar_con_memoria();
+        if (socket_memoria < 0) {
+            log_error(logger, "No se pudo conectar a Memoria para SUSPENDER PROCESO %d", pcb->pid);
+            return false;
+        }
+        enviar_opcode(SUSPENDER_PROCESO, socket_memoria);
+        t_paquete* paquete = crear_paquete();
+        agregar_int_a_paquete(paquete, pcb->pid);
+        enviar_paquete(paquete, socket_memoria);
+        eliminar_paquete(paquete);
+        log_info(logger, "##(%d) Se envio a memoria con la orden de SUSPENDER", pcb->pid);
     }
-    else
-    {
+    else{
         log_info(logger, "##(%d) El proceso ya se desbloqueó antes, timer invalido", pcb->pid);
     }
     return NULL;

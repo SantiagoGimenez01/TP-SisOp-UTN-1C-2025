@@ -251,17 +251,26 @@ void operarIo(int socket_cliente)
 
             if (pcb)
             {
-                if (pcb->estado_actual == BLOCKED)
-                {
+                if (pcb->estado_actual == BLOCKED){
                     pcb->timer_flag = -1; // invalida el timer
                     // log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
                     cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
                     // sem_post(&sem_procesos_en_ready); Este creo que estaba de mas ya que ya se hace el sem_post cuando se agrega pcb a lista_ready
                     // log_info(logger, "Se hizo un semPost de ready");
-                }
-                else
-                {
-                    cambiar_estado(pcb, SUSP_READY);
+                }else{
+                    cambiar_estado(pcb, SUSP_READY); //Cambiamos el estado del proceso
+                    //Establecemos conexion con memoria
+                    int socket_memoria = conectar_con_memoria();
+                    if (socket_memoria < 0) {
+                        log_error(logger, "No se pudo conectar a Memoria para DESUSPENDER PROCESO %d", pcb->pid);
+                    }
+                    //Indicamos operacion y enviamos paquete con PID
+                    enviar_opcode(DESUSPENDER_PROCESO, socket_memoria);
+                    t_paquete* paquete = crear_paquete();
+                    agregar_int_a_paquete(paquete, pcb->pid);
+                    enviar_paquete(paquete, socket_memoria);
+                    eliminar_paquete(paquete);
+                    log_info(logger, "##(%d) Se envio a memoria con la orden de DESUSPENDER", pcb->pid);
                 }
                 pcb->tiempoIO = -1;
             }
