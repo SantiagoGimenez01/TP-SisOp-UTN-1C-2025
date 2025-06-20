@@ -1,6 +1,8 @@
 #include "inicializar.h"
-
+#define MULTIPLICADOR_SWAP 4
 void inicializar_memoria() {
+
+    crear_swapfile();
     cantidad_frames = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
 
     int tamanio_bitmap_bytes = cantidad_frames / 8;
@@ -158,4 +160,40 @@ void liberar_proceso_en_memoria(t_proceso_en_memoria* proceso) {
     list_remove_element(procesos_en_memoria, proceso); // elimina de la lista global
     free(proceso);
 
+}
+
+
+
+
+void crear_swapfile() {
+    FILE* f = fopen(configMEMORIA.path_swapfile, "r+b");
+    if (f) {
+        fclose(f);
+        return;
+    }
+
+    int frames_en_ram = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
+    int slots_en_swap = frames_en_ram * MULTIPLICADOR_SWAP;
+    size_t tamanio_swap = slots_en_swap * configMEMORIA.tam_pagina;
+
+    
+    void* buffer = calloc(1, tamanio_swap);
+    f = fopen(configMEMORIA.path_swapfile, "w+b");
+    if (!f) {
+        log_error(logger, "No se pudo crear swapfile.bin");
+        exit(EXIT_FAILURE);
+    }
+    fwrite(buffer, 1, tamanio_swap, f);
+    free(buffer);
+    fclose(f);
+
+    log_info(logger, "Archivo swapfile.bin creado con %d slots (tamaño total %zu bytes)", slots_en_swap, tamanio_swap);
+
+    
+    int tamanio_bitmap_bytes = slots_en_swap / 8;
+    char* bitmap_data = calloc(tamanio_bitmap_bytes, sizeof(char));
+
+    bitmap_swap = bitarray_create_with_mode(bitmap_data, tamanio_bitmap_bytes, LSB_FIRST);
+
+    log_info(logger, "Bitmap de SWAP creado con %d bits (%d bytes)", slots_en_swap, tamanio_bitmap_bytes);
 }
