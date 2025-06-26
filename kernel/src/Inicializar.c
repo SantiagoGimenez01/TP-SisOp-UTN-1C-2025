@@ -161,6 +161,12 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
         pcb->estimacion_rafaga = calcularEstimacion(pcb);
         log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
     }
+//Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta 
+//ejecutando termina, el semaforo de procesos en ready no va a dejar avanzar (igual no estaria funcionando xd)
+    if(strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS){
+        sem_post(&sem_procesos_en_ready);
+        log_info(logger, "Proceso %d abandono la CPU e hizo el post de ready", pcb->pid);
+    }
 
     // Remover PCB de su cola anterior
     remover_de_cola(pcb, pcb->estado_actual);

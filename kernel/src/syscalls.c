@@ -116,7 +116,7 @@ void atender_syscall_dump_memory(t_pcb* pcb, int socket_cpu) {
 
 void atender_syscall_exit(t_pcb* pcb, int socket_cpu) {
 
-    cambiar_estado(pcb, EXIT);
+    cambiar_estado(pcb, EXIT_PROCESS);
     log_info(logger, "Se envia al socket %d el desalojo", socket_cpu);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
     finalizar_proceso(pcb);
