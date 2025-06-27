@@ -32,5 +32,5 @@ void enviar_proceso(t_cpu* cpu, t_pcb* pcb);
 void obtenerIndiceDeProcesoMasChico(t_list* cola_new, int* indexMasChico);
 void obtenerIndiceDeProcesoMasCorto(t_list* cola_ready, int* indexMasCorto);
 void* timer_bloqueo(void* arg);
-
+bool hayDesalojo();
 #endif

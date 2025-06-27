@@ -244,9 +244,9 @@ void *planificador_largo_plazo(void *arg)
 
 bool hayDesalojo(){
     if(strcmp(configKERNEL.algoritmo_planificacion, "SJF") == 0 || strcmp(configKERNEL.algoritmo_planificacion, "FIFO") == 0)
-        return false;
-    else if(strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
         return true;
+    else if(strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
+        return false;
     else
         log_info(logger, "Algoritmo desconocido");
 }
@@ -297,7 +297,7 @@ void* planificador_corto_plazo(void* arg) {
         sem_wait(&sem_procesos_en_ready);
         log_info(logger, "Pasa semaforo procesos en ready");
         //Si hay desalojo comprueba si el proceso que llego a ready requiere una replanificacion
-        if(desalojo){
+        if(!desalojo){
             bool cpusLibres = hayCpus(); //Comprueba si hay CPU libre
             //Si no hay CPUs libres...
             if(!cpusLibres){

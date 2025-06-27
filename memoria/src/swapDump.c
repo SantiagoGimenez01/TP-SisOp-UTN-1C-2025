@@ -71,16 +71,32 @@ void suspender_proceso(t_proceso_en_memoria* proceso) {
     log_info(logger, "Proceso %d suspendido correctamente", proceso->pid);
 }
 
-
 void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_proceso_en_memoria* proceso, FILE* swap) {
     for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++) {
+        if (!tabla || !tabla->entradas[i]) {
+            log_trace(logger, "Entrada NULL en nivel %d, indice %d", nivel_actual, i);
+            continue;
+        }
+
         if (nivel_actual == configMEMORIA.cantidad_niveles) {
             t_entrada_pagina* entrada = tabla->entradas[i];
-            if (entrada && entrada->presencia) {
-                int slot = obtener_slot_libre();
-                int offset = slot * configMEMORIA.tam_pagina;
 
+            if (entrada->presencia) {
+                if (entrada->marco < 0 || entrada->marco >= cantidad_frames) {
+                    log_error(logger, "ERROR: Marco inválido (%d) en entrada [%d] del nivel %d", entrada->marco, i, nivel_actual);
+                    continue;
+                }
+
+                int slot = obtener_slot_libre();
+                if (slot == -1) {
+                    log_error(logger, "ERROR: No hay slots libres en SWAP para PID %d", proceso->pid);
+                    continue;
+                }
+
+                int offset = slot * configMEMORIA.tam_pagina;
                 void* origen = memoria_fisica + (entrada->marco * configMEMORIA.tam_pagina);
+
+                log_trace(logger, "Copiando página %d del PID %d al slot %d (offset %d)", i, proceso->pid, slot, offset);
                 fseek(swap, offset, SEEK_SET);
                 fwrite(origen, 1, configMEMORIA.tam_pagina, swap);
 
@@ -93,14 +109,15 @@ void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_
                 bitarray_clean_bit(bitmap_frames, entrada->marco);
                 entrada->presencia = false;
 
-               
                 proceso->metricas.bajadas_a_swap++;
             }
+
         } else {
             suspender_paginas_recursivamente((t_tabla_nivel*) tabla->entradas[i], nivel_actual + 1, proceso, swap);
         }
     }
 }
+
 
 
 
