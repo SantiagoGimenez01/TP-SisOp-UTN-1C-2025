@@ -60,6 +60,7 @@ void escuchar_pedidos_io() {
                 log_info(logger, "## PID: %d - Fin de IO", pid);
 
                 enviar_opcode(FIN_IO, socket_kernel);
+                
                 t_paquete* respuesta = crear_paquete();
                 agregar_int_a_paquete(respuesta, pid);
                 enviar_paquete(respuesta, socket_kernel);

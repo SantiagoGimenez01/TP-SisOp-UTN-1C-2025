@@ -85,3 +85,56 @@ bool liberar_en_memoria(uint32_t pid) {
 
     return respuesta == RESPUESTA_OK;
 }
+
+bool solicitar_desuspender_proceso(uint32_t pid){
+    //Establecemos conexion con memoria
+    int socket_memoria = conectar_con_memoria();
+    //Comprobamos que la conexion sea exitosa
+    if (socket_memoria < 0) {
+        log_error(logger, "No se pudo conectar a Memoria para DESUSPENDER PROCESO %d", pid);
+        return false;
+    }
+    //Le pedimos a memoria que desuspenda el proceso
+    enviar_opcode(DESUSPENDER_PROCESO, socket_memoria);
+
+    //Mandamos el PID a desuspender
+    t_paquete* paquete = crear_paquete();
+    agregar_int_a_paquete(paquete, pid);
+    enviar_paquete(paquete, socket_memoria);
+    eliminar_paquete(paquete);
+
+    log_info(logger, "##(%d) Se envio a memoria con la orden de DESUSPENDER", pid);
+
+    //Esperamos la respuesta de memoria
+    int respuesta;
+    recv(socket_memoria, &respuesta, sizeof(int), MSG_WAITALL);
+    close(socket_memoria);
+
+    return respuesta == RESPUESTA_OK;
+
+}
+
+bool solicitar_suspender_proceso(uint32_t pid){
+    //Establecemos conexion con memoria
+    int socket_memoria = conectar_con_memoria();
+    //Comprobamos que la conexion sea exitosa
+    if (socket_memoria < 0) {
+        log_error(logger, "No se pudo conectar a Memoria para SUSPENDER PROCESO %d", pid);
+        return false;
+    }
+    //Le pedimos a memoria que suspenda el proceso
+    enviar_opcode(SUSPENDER_PROCESO, socket_memoria);
+    //Mandamos el PID a suspender
+    t_paquete* paquete = crear_paquete();
+    agregar_int_a_paquete(paquete, pid);
+    enviar_paquete(paquete, socket_memoria);
+    eliminar_paquete(paquete);
+    log_info(logger, "##(%d) Se envio a memoria con la orden de SUSPENDER", pid);
+
+    //Esperamos la respuesta de memoria
+    int respuesta;
+    recv(socket_memoria, &respuesta, sizeof(int), MSG_WAITALL);
+    close(socket_memoria);
+
+    return respuesta == RESPUESTA_OK;
+}
