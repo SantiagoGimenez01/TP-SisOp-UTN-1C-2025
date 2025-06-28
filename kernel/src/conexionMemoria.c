@@ -60,9 +60,15 @@ bool solicitar_dump_a_memoria(uint32_t pid) {
 
     int resultado;
     recv(socket_memoria, &resultado, sizeof(int), MSG_WAITALL);
+
+    bool aceptado = false;
+
+    if (resultado == RESPUESTA_OK) {
+        aceptado = true;
+    }
     close(socket_memoria);
 
-    return resultado == RESPUESTA_OK;
+    return aceptado;
 }
 
 bool liberar_en_memoria(uint32_t pid) {
@@ -81,9 +87,16 @@ bool liberar_en_memoria(uint32_t pid) {
 
     int respuesta;
     recv(socket_memoria, &respuesta, sizeof(int), MSG_WAITALL);
+    
+    bool aceptado = false;
+
+    if (respuesta == RESPUESTA_OK) {
+        aceptado = true;
+    }
     close(socket_memoria);
 
-    return respuesta == RESPUESTA_OK;
+    return aceptado;
+    
 }
 
 bool solicitar_desuspender_proceso(uint32_t pid){
@@ -108,9 +121,15 @@ bool solicitar_desuspender_proceso(uint32_t pid){
     //Esperamos la respuesta de memoria
     int respuesta;
     recv(socket_memoria, &respuesta, sizeof(int), MSG_WAITALL);
+    
+    bool aceptado = false;
+
+    if (respuesta == RESPUESTA_OK) {
+        aceptado = true;
+    }
     close(socket_memoria);
 
-    return respuesta == RESPUESTA_OK;
+    return aceptado;
 
 }
 
@@ -134,7 +153,12 @@ bool solicitar_suspender_proceso(uint32_t pid){
     //Esperamos la respuesta de memoria
     int respuesta;
     recv(socket_memoria, &respuesta, sizeof(int), MSG_WAITALL);
+    bool aceptado = false;
+
+    if (respuesta == RESPUESTA_OK) {
+        aceptado = true;
+    }
     close(socket_memoria);
 
-    return respuesta == RESPUESTA_OK;
+    return aceptado;
 }

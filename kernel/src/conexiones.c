@@ -250,7 +250,8 @@ void operarIo(int socket_cliente)
             t_pcb *pcb = buscar_pcb_por_pid(pid);
 
             if (pcb)
-            {
+            {   
+                pthread_mutex_lock(&pcb->mutex_pcb);
                 if (pcb->estado_actual == BLOCKED){
                     pcb->timer_flag = -1; // invalida el timer
                     // log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
@@ -260,12 +261,15 @@ void operarIo(int socket_cliente)
                 }else{
                     bool resultado = solicitar_desuspender_proceso(pcb->pid);
 
-                    if(resultado)
+                    if(resultado){
                         cambiar_estado(pcb, SUSP_READY); //Pasamos el proceso a SUSP_READY
+                        sem_post(&sem_procesos_en_suspReady);
+                    }
                     else
                         log_error(logger, "##(%d) No se desuspendio correctamente", pcb->pid);
                 }
                 pcb->tiempoIO = -1;
+                pthread_mutex_unlock(&pcb->mutex_pcb);
             }
 
             if (!queue_is_empty(dispositivo->cola_procesos))

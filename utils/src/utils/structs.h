@@ -2,6 +2,7 @@
 #define STRUCTS_H
 #include <commons/collections/list.h>
 #include <stdint.h>
+#include <pthread.h>
 
 
 typedef enum {
@@ -100,6 +101,7 @@ typedef struct {
     char* archivo_pseudocodigo;
     int tiempoIO;
     int timer_flag;
+    pthread_mutex_t mutex_pcb;
 } t_pcb;
 
 

@@ -133,7 +133,8 @@ void inicializar_proceso(char *archivo_pseudocodigo, int tamanio)
     nuevo_pcb->tiempoIO = -1;
     nuevo_pcb->timer_flag = -1;
     nuevo_pcb->timer_exec = nuevo_pcb->estimacion_rafaga;
-
+    pthread_mutex_init(&nuevo_pcb->mutex_pcb, NULL);
+    
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
     list_add(pcbs, nuevo_pcb);
     log_info(logger, "Se agrego un proceso a la lista de PCBS, TAM LISTA: %d", list_size(pcbs));

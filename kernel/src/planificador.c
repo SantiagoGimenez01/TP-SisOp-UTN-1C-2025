@@ -457,6 +457,7 @@ void *timer_bloqueo(void *arg)
     log_info(logger, "##(%d) Comenzando timer...", pcb->pid);
     usleep(configKERNEL.tiempo_suspension * 1000); // Espera
     // Si todavia sigue bloqueado lo suspende
+    pthread_mutex_lock(&pcb->mutex_pcb);
     if (pcb->estado_actual == BLOCKED && pcb->timer_flag > 0){
         bool resultado = solicitar_suspender_proceso(pcb->pid);
         if(resultado){
@@ -470,6 +471,8 @@ void *timer_bloqueo(void *arg)
     else{
         log_info(logger, "##(%d) El proceso ya se desbloqueó antes, timer invalido", pcb->pid);
     }
+
+    pthread_mutex_unlock(&pcb->mutex_pcb);
     return NULL;
 }
 
