@@ -1,6 +1,6 @@
 INIT_PROC prueba2 64
 INIT_PROC prueba4 64
-INIT_PROC prueba3 64
+INIT_PROC prueba3 128
 INIT_PROC prueba5 64
 NOOP
 NOOP

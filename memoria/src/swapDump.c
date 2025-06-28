@@ -1,7 +1,7 @@
 #include "swapDump.h"
 static int slot_a_verificar;
 
-void generar_dump(t_proceso_en_memoria* proceso) {
+bool generar_dump(t_proceso_en_memoria* proceso) {
     // obtener timestamp
     time_t timestamp = time(NULL);
     char nombre_archivo[256];
@@ -10,7 +10,7 @@ void generar_dump(t_proceso_en_memoria* proceso) {
     FILE* archivo = fopen(nombre_archivo, "wb");
     if (!archivo) {
         log_error(logger, "No se pudo crear archivo de dump: %s", nombre_archivo);
-        return;
+        return false; 
     }
 
     // contenido de memoria del proceso
@@ -19,19 +19,35 @@ void generar_dump(t_proceso_en_memoria* proceso) {
 
     fclose(archivo);
     log_info(logger, "Dump completado para PID %d: %d paginas copiadas a %s", proceso->pid, paginas_escritas, nombre_archivo);
+    return true;
 }
 
 
 void escribir_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, FILE* archivo, int* paginas_escritas) {
+    if (!tabla) {
+        log_error(logger, "Tabla NULL en nivel %d", nivel_actual);
+        return;
+    }
+
     for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++) {
         if (nivel_actual == configMEMORIA.cantidad_niveles) {
             t_entrada_pagina* entrada = tabla->entradas[i];
-            if (entrada && entrada->presencia) {
+
+            if (entrada == NULL) {
+                log_trace(logger, "Entrada NULL en nivel %d, indice %d", nivel_actual, i);
+                continue;
+            }
+
+            if (entrada->presencia) {
                 void* origen = memoria_fisica + (entrada->marco * configMEMORIA.tam_pagina);
                 fwrite(origen, 1, configMEMORIA.tam_pagina, archivo);
                 (*paginas_escritas)++;
             }
         } else {
+            if (tabla->entradas[i] == NULL) {
+                log_trace(logger, "Entrada NULL en nivel %d, indice %d", nivel_actual, i);
+                continue;
+            }
             escribir_paginas_recursivamente((t_tabla_nivel*) tabla->entradas[i], nivel_actual + 1, archivo, paginas_escritas);
         }
     }

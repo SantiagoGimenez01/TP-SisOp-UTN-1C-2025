@@ -126,11 +126,11 @@ void operarKernel(int socket_cliente) {
             }
 
             log_info(logger, "## PID: %d - Inicio de Dump", pid);
-            //generar_dump(pid)
+            bool ok = generar_dump(proceso);
             //CREAR ARCHIVO y aca verificar si estuvo okey o hubo error
 
-            int ok = RESPUESTA_OK;
-            send(socket_cliente, &ok, sizeof(int), 0);
+            int respuesta = ok ? RESPUESTA_OK : RESPUESTA_ERROR;
+            send(socket_cliente, &respuesta, sizeof(int), 0);
             break;
         }
         case SUSPENDER_PROCESO: {

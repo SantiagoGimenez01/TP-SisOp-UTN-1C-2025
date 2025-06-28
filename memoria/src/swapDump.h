@@ -5,7 +5,7 @@
 #include <math.h>
 #include "inicializar.h"
 // Dump
-void generar_dump(t_proceso_en_memoria* proceso);
+bool generar_dump(t_proceso_en_memoria* proceso);
 void escribir_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, FILE* archivo, int* paginas_escritas);
 
 // Swap
