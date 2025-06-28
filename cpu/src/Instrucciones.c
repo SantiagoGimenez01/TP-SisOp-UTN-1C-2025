@@ -199,7 +199,7 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             log_info(logger, "Contenido leido desde Memoria: %s", contenido);
             agregar_a_cache(pid, dir, marco, pagina_completa);
             log_info(logger, "PID: %d - Cache Add - Pagina: %d", pid, nro_pagina);
-            free(pagina_completa);
+            //free(pagina_completa);
         }
         else
         {
@@ -207,7 +207,7 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             contenido = pedir_fragmento_de_memoria(pid, marco, desplazamiento, tamanio);
             log_info(logger, "Contenido leido desde Memoria: %s", contenido);
         }
-        free(contenido);
+        //free(contenido);
         free(dir->entradas_niveles);
         free(dir);
         break;
@@ -281,7 +281,6 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             agregar_a_cache(pid, dir, marco, pagina_completa);
             marcar_modificada_en_cache(nro_pagina);
             log_info(logger, "PID: %d - Cache Add - Pagina: %d", pid, nro_pagina);
-            free(pagina_completa);
         }
         else
         {

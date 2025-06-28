@@ -126,7 +126,7 @@ void agregar_a_cache(uint32_t pid, t_direccion_fisica* dir, uint32_t marco, char
 
         t_entrada_cache* nueva = malloc(sizeof(t_entrada_cache));
         nueva->nro_pagina = dir->numero_pagina;
-        nueva->contenido = strdup(contenido);
+        nueva->contenido = contenido;
         nueva->uso = true;
         nueva->modificado = false;
         nueva->marco = marco;
@@ -211,7 +211,7 @@ void reemplazar_cache_clock_m(uint32_t pid, t_direccion_fisica* dir, uint32_t ma
 
     free(victima->contenido);
     victima->nro_pagina = dir->numero_pagina;
-    victima->contenido = strdup(contenido);
+    victima->contenido = contenido;
     victima->uso = true;
     victima->modificado = false;
     victima->marco = marco;
@@ -234,7 +234,7 @@ void reemplazar_cache_clock(uint32_t pid, t_direccion_fisica* dir, uint32_t marc
 
             free(actual->contenido);
             actual->nro_pagina = dir->numero_pagina;
-            actual->contenido = strdup(contenido);
+            actual->contenido = contenido;
             actual->uso = true;
             actual->modificado = false;
             actual->marco = marco;

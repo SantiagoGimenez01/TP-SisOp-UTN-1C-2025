@@ -9,7 +9,7 @@ char* pedir_contenido_de_pagina(uint32_t pid, uint32_t marco) {
     eliminar_paquete(paquete);
 
     t_paquete* respuesta = recibir_paquete(socket_memoria);
-    char* contenido = recibir_string_de_paquete(respuesta);
+    char* contenido = recibir_bloque_de_paquete(respuesta, tam_pagina);
     eliminar_paquete(respuesta);
     return contenido;
 }
@@ -73,7 +73,10 @@ void actualizar_paginas_modificadas_en_memoria(uint32_t pid) {
             t_paquete* paquete = crear_paquete();
             agregar_int_a_paquete(paquete, pid);
             agregar_int_a_paquete(paquete, entrada->marco);
-            agregar_string_a_paquete(paquete, entrada->contenido);
+            log_info(logger, "DEBUG CPU - Mandando al marco %d el contenido '%s'", entrada->marco, entrada->contenido);
+
+            agregar_bloque_a_paquete(paquete, entrada->contenido, tam_pagina);
+            log_info(logger, "DEBUG CPU - Mandando al marco %d el contenido (parcial): '%.20s'", entrada->marco, entrada->contenido);
             enviar_paquete(paquete, socket_memoria);
             eliminar_paquete(paquete);
 
@@ -190,9 +193,13 @@ void limpiar_tlb() {
 
 void limpiar_cache() {
     for (int i = 0; i < list_size(cache_paginas); i++) {
-        t_entrada_cache* entrada = list_get(cache_paginas, i);
+    t_entrada_cache* entrada = list_get(cache_paginas, i);
+    if (entrada->contenido != NULL) {
         free(entrada->contenido);
+        entrada->contenido = NULL;
     }
+}
+
     list_destroy_and_destroy_elements(cache_paginas, free);
     cache_paginas = list_create();
     log_info(logger, "Cache de páginas limpiada");

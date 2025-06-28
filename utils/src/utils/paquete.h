@@ -33,4 +33,6 @@ void enviar_opcode(t_opcode codigo, int socket);
 char* recibir_string_de_paquete_con_offset(t_paquete* paquete, int* offset);
 const char* nombre_syscall(t_instruccion_id id);
 uint64_t get_timestamp();
+void agregar_bloque_a_paquete(t_paquete* paquete, void* bloque, int tamanio);
+char* recibir_bloque_de_paquete(t_paquete* paquete, int tamanio_esperado);
 #endif 

@@ -347,7 +347,7 @@ void operarCPU(int socket_cliente) {
                 char* pagina_completa = leer_pagina(proceso, marco);
 
                 t_paquete* respuesta = crear_paquete();
-                agregar_string_a_paquete(respuesta, pagina_completa);
+                agregar_bloque_a_paquete(respuesta, pagina_completa, configMEMORIA.tam_pagina); 
                 enviar_paquete(respuesta, socket_cliente);
                 eliminar_paquete(respuesta);
                 free(pagina_completa);

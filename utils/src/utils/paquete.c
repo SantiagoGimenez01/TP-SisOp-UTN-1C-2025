@@ -114,3 +114,26 @@ uint64_t get_timestamp() {
     gettimeofday(&tv, NULL);
     return (uint64_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000); // tremenda fruta pero vamos a ver que sale
 }
+
+void agregar_bloque_a_paquete(t_paquete* paquete, void* bloque, int tamanio) {
+    paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + sizeof(int) + tamanio);
+
+    memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
+    paquete->buffer->size += sizeof(int);
+
+    memcpy(paquete->buffer->stream + paquete->buffer->size, bloque, tamanio);
+    paquete->buffer->size += tamanio;
+}
+
+char* recibir_bloque_de_paquete(t_paquete* paquete, int tamanio_esperado) {
+    int desplazamiento = 0;
+    int tamanio;
+
+    memcpy(&tamanio, paquete->buffer->stream + desplazamiento, sizeof(int));
+    desplazamiento += sizeof(int);
+
+    char* bloque = malloc(tamanio);
+    memcpy(bloque, paquete->buffer->stream + desplazamiento, tamanio);
+
+    return bloque;
+}
