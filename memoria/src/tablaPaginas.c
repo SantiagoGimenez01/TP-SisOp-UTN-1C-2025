@@ -96,9 +96,9 @@ void marcar_modificada(t_proceso_en_memoria* proceso, int* entradas_niveles) {
 
 
 bool hay_espacio_para(uint32_t paginas_requeridas) {
-    int disponibles = 0;
+    uint32_t disponibles = 0;
 
-    for (int i = 0; i < bitarray_get_max_bit(bitmap_frames); i++) {
+    for (int i = 0; i < cantidad_frames; i++) {
         if (!bitarray_test_bit(bitmap_frames, i))
             disponibles++;
     }

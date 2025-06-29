@@ -5,7 +5,7 @@ void inicializar_memoria() {
     crear_swapfile();
     cantidad_frames = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
 
-    int tamanio_bitmap_bytes = cantidad_frames / 8;
+    int tamanio_bitmap_bytes = (cantidad_frames + 7) / 8;
     char* bitmap_memoria = calloc(tamanio_bitmap_bytes, sizeof(char));  // todos los bits en 0
 
     bitmap_frames = bitarray_create_with_mode(bitmap_memoria, tamanio_bitmap_bytes, LSB_FIRST);
@@ -134,9 +134,14 @@ void liberar_marcos_de_proceso(t_tabla_nivel* tabla, int nivel_actual) {
             t_entrada_pagina* entrada = tabla->entradas[i];
             if (!entrada) continue;  
 
-            if (entrada->presencia) {
+            if (entrada->presencia && entrada->marco >= 0 && entrada->marco < cantidad_frames) {
+                log_trace(logger, "Liberando marco %d (presente: %d)", entrada->marco, entrada->presencia);
                 bitarray_clean_bit(bitmap_frames, entrada->marco);
+                log_trace(logger, "Bit limpio correctamente en marco %d", entrada->marco);
+            } else {
+                log_error(logger, "Error: marco invalido %d", entrada->marco);
             }
+
             free(entrada);
         } else {
             if (tabla->entradas[i]) 
@@ -159,6 +164,10 @@ void liberar_proceso_en_memoria(t_proceso_en_memoria* proceso) {
     free(proceso->nombre_archivo);
     list_remove_element(procesos_en_memoria, proceso); // elimina de la lista global
     free(proceso);
+    for (int i = 0; i < cantidad_frames; i++) {
+    log_trace(logger, "Frame %d: %d", i, bitarray_test_bit(bitmap_frames, i));
+    }
+
 
 }
 

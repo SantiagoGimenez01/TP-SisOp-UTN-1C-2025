@@ -202,7 +202,6 @@ void *planificador_largo_plazo(void *arg)
         t_pcb *siguiente;
 
         sem_wait(&sem_procesos_que_van_a_ready);
-
         if (list_is_empty(cola_susp_ready))
         {
             sem_wait(&sem_procesos_en_new);
@@ -232,10 +231,21 @@ void *planificador_largo_plazo(void *arg)
 
             log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
         }
-        else
+         else
         {
             log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
-            // Dejarlo en NEW dependiento QUE
+
+            if (siguiente->estado_actual == NEW && strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0)
+            {
+                pthread_mutex_lock(&mutex_new);
+                list_add_in_index(cola_new, 0, siguiente);  // vuelve al frente
+                pthread_mutex_unlock(&mutex_new);
+               
+            }
+            else
+            {
+                //agregar_a_cola(siguiente, NEW);
+            }
         }
     }
 
