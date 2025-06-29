@@ -28,13 +28,13 @@ t_pcb *obtener_siguiente_de_new()
 
     if (strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0)
     {
-        candidato = list_remove(cola_new, 0); // Debate que tengo
+        candidato = list_get(cola_new, 0); // Debate que tengo
     }
     else if (strcmp(configKERNEL.algoritmo_cola_new, "PMCP") == 0)
     {
         int indexMasChico = 0;                                    // El proceso mas chico comienza siendo el 1ro de la lista
         obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
-        candidato = list_remove(cola_new, indexMasChico);         // Seleccionamos el mas chico y lo sacamos de new
+        candidato = list_get(cola_new, indexMasChico);         // Seleccionamos el mas chico y lo sacamos de new
     }
     else
     {
@@ -200,7 +200,7 @@ void *planificador_largo_plazo(void *arg)
     while (1)
     {
         t_pcb *siguiente;
-
+        log_info(logger, "ENTRO PLANIFICACION.");
         sem_wait(&sem_procesos_que_van_a_ready);
         if (list_is_empty(cola_susp_ready))
         {
@@ -222,6 +222,9 @@ void *planificador_largo_plazo(void *arg)
         // log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
         if (aceptado)
         {
+            pthread_mutex_lock(&mutex_new);
+            list_remove_element(cola_new, siguiente);
+            pthread_mutex_unlock(&mutex_new);
             cambiar_estado(siguiente, READY);
             // pthread_mutex_lock(&mutex_ready);
             // list_add(cola_ready, siguiente);
@@ -235,17 +238,6 @@ void *planificador_largo_plazo(void *arg)
         {
             log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
 
-            if (siguiente->estado_actual == NEW && strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0)
-            {
-                pthread_mutex_lock(&mutex_new);
-                list_add_in_index(cola_new, 0, siguiente);  // vuelve al frente
-                pthread_mutex_unlock(&mutex_new);
-               
-            }
-            else
-            {
-                //agregar_a_cola(siguiente, NEW);
-            }
         }
     }
 
