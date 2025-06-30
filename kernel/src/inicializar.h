@@ -22,6 +22,8 @@ extern t_list* cola_susp_ready;
 extern t_list* cola_susp_blocked;
 extern t_list* pcbs;  
 
+extern sem_t sem_corto_plazo;
+
 extern sem_t sem_procesos_en_new;
 extern sem_t sem_procesos_en_ready;
 extern sem_t sem_procesos_en_blocked;

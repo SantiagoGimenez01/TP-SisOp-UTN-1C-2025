@@ -28,6 +28,8 @@ pthread_mutex_t mutex_susp_ready;
 pthread_mutex_t mutex_susp_blocked;
 
 sem_t sem_cpu_disponible;
+sem_t sem_corto_plazo;
+
 pthread_mutex_t mutex_cpus = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_pcbs;
 
@@ -48,6 +50,7 @@ void inicializarEstados()
     sem_init(&respuesta_estimacion, 0, 0);
 
     sem_init(&sem_cpu_disponible, 0, 0);
+    sem_init(&sem_corto_plazo, 0, 0);
 
     pthread_mutex_init(&mutex_new, NULL);
     pthread_mutex_init(&mutex_ready, NULL);
@@ -134,7 +137,7 @@ void inicializar_proceso(char *archivo_pseudocodigo, int tamanio)
     nuevo_pcb->timer_flag = -1;
     nuevo_pcb->timer_exec = nuevo_pcb->estimacion_rafaga;
     pthread_mutex_init(&nuevo_pcb->mutex_pcb, NULL);
-    
+
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
     list_add(pcbs, nuevo_pcb);
     log_info(logger, "Se agrego un proceso a la lista de PCBS, TAM LISTA: %d", list_size(pcbs));
@@ -162,10 +165,17 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
         pcb->estimacion_rafaga = calcularEstimacion(pcb);
         log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
     }
-//Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta 
-//ejecutando termina, el semaforo de procesos en ready no va a dejar avanzar (igual no estaria funcionando xd)
-    if(strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS){
+    // Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta
+    // ejecutando termina, el semaforo de procesos en ready no va a dejar avanzar (igual no estaria funcionando xd)
+    if (pcb->estado_actual != EXEC && nuevo_estado == READY)
+    {
         sem_post(&sem_procesos_en_ready);
+        sem_post(&sem_corto_plazo);
+    }
+
+    if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS)
+    {
+        // sem_post(&sem_procesos_en_ready);
         log_info(logger, "Proceso %d abandono la CPU e hizo el post de ready", pcb->pid);
     }
 
@@ -365,6 +375,6 @@ void marcar_cpu_como_libre(int socket_dispatch)
     cpu->disponible = true;
     cpu->pcb_exec = NULL;
     log_info(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_dispatch);
-
+    sem_post(&sem_corto_plazo);
     sem_post(&sem_cpu_disponible);
 }

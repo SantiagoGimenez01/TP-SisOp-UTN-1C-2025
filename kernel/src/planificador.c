@@ -34,7 +34,7 @@ t_pcb *obtener_siguiente_de_new()
     {
         int indexMasChico = 0;                                    // El proceso mas chico comienza siendo el 1ro de la lista
         obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
-        candidato = list_get(cola_new, indexMasChico);         // Seleccionamos el mas chico y lo sacamos de new
+        candidato = list_get(cola_new, indexMasChico);            // Seleccionamos el mas chico y lo sacamos de new
     }
     else
     {
@@ -82,14 +82,14 @@ t_pcb *obtener_siguiente_de_ready()
     {
         // Indice del ultimo ready, osea el que acaba de llegar
         proceso = list_remove(cola_ready, list_size(cola_ready) - 1);
-/*         if (!proceso)
-        {
-            log_info(logger, "Proceso no encontrado en index: %d", list_size(cola_ready) - 1);
-        }
-        else
-        {
-            log_info(logger, "PCB %d | Index %d", proceso->pid, list_size(cola_ready) - 1);
-        } */
+        /*         if (!proceso)
+                {
+                    log_info(logger, "Proceso no encontrado en index: %d", list_size(cola_ready) - 1);
+                }
+                else
+                {
+                    log_info(logger, "PCB %d | Index %d", proceso->pid, list_size(cola_ready) - 1);
+                } */
     }
     else
     {
@@ -153,7 +153,8 @@ t_cpu *obtener_cpu_libre()
     for (int i = 0; i < list_size(cpus); i++)
     {
         t_cpu *cpu = list_get(cpus, i);
-        if (cpu->disponible){
+        if (cpu->disponible)
+        {
             log_info(logger, "Encontro cpu disponible");
             cpu_libre = cpu;
             // cpu->disponible = false;
@@ -234,34 +235,36 @@ void *planificador_largo_plazo(void *arg)
 
             log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
         }
-         else
+        else
         {
             log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
-
         }
     }
 
     return NULL;
 }
 
-bool hayDesalojo(){
-    if(strcmp(configKERNEL.algoritmo_planificacion, "SJF") == 0 || strcmp(configKERNEL.algoritmo_planificacion, "FIFO") == 0)
+bool hayDesalojo()
+{
+    if (strcmp(configKERNEL.algoritmo_planificacion, "SJF") == 0 || strcmp(configKERNEL.algoritmo_planificacion, "FIFO") == 0)
         return false;
-    else if(strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
+    else if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
         return true;
     else
         log_info(logger, "Algoritmo desconocido");
 }
 
-bool hayCpus(){
+bool hayCpus()
+{
     pthread_mutex_lock(&mutex_cpus);
-    for (int i = 0; i < list_size(cpus); i++){
+    for (int i = 0; i < list_size(cpus); i++)
+    {
         t_cpu *cpu = list_get(cpus, i);
-        if (cpu->disponible){
+        if (cpu->disponible)
+        {
             pthread_mutex_unlock(&mutex_cpus);
             return true;
         }
-            
     }
     pthread_mutex_unlock(&mutex_cpus);
     return false;
@@ -276,78 +279,122 @@ pase a exit haga un sem_post pero no estaria funcionando (ademas creo que deberi
 nada y pase a EXIT no haga un sem_post de mas).
 */
 
-
-void* planificador_corto_plazo(void* arg) {
+void *planificador_corto_plazo(void *arg)
+{
 
     log_info(logger, "Planifiacion de corto plazo iniciada");
-    t_cpu* cpu;
-    bool desalojo = hayDesalojo(); //Comprueba si el algoritmo del planificador tiene desalojo
-    while (1) {
-        log_info(logger, "Entro a corto plazo");
+    t_cpu *cpu;
+    bool desalojo = hayDesalojo(); // Comprueba si el algoritmo del planificador tiene desalojo
+    while (1)
+    {
 
-        //Si no hay desalojo...
-        if(!desalojo){
+        // Espera hasta que: haya procesos en la cola de ready o haya alguna cpu libre
+        // El post de este semaforo se hace en dos lugares:
+        // - Al cambiar de estado un proceso a READY (mientras no venga de EXEC, ya que ese cambio seria por el desalojo, y no queremos replanificar en ese caso)
+        // - Al recibir CPU_LIBRE de cualquier cpu.
+        sem_wait(&sem_corto_plazo);
+ 
+        log_info(logger, "Entro a corto plazo");
+        // Si no hay desalojo...
+        if (!desalojo)
+        {
             log_info(logger, "No hay desalojo en este algoritmo");
             // Esperar que haya al menos una CPU libre
             sem_wait(&sem_cpu_disponible);
-            cpu = obtener_cpu_libre(); 
+            cpu = obtener_cpu_libre();
             log_info(logger, "Obtuvo cpu libre");
         }
 
+        // Este semaforo se colgaba esperando un proceso en ready cuando ya tenia en procesos en cola_ready
+        // Por eso implemento el otro semaforo que chequea tanto si una CPU se marco libre o si un proceso LLEGÓ a READY
+        // Enfasis en llego, ya que no me interesa replanificar si ya chequee desalojo en los procesos de la lista (para eso espero a la CPU_LIBRE)
+        
         // Esperamos que haya al menos un proceso en READY
-        sem_wait(&sem_procesos_en_ready);
-        log_info(logger, "Pasa semaforo procesos en ready");
-        //Si hay desalojo comprueba si el proceso que llego a ready requiere una replanificacion
-        if(desalojo){
-            bool cpusLibres = hayCpus(); //Comprueba si hay CPU libre
-            //Si no hay CPUs libres...
-            if(!cpusLibres){
+        // sem_wait(&sem_procesos_en_ready);
+        // log_info(logger, "Pasa semaforo procesos en ready");
+        // Si hay desalojo comprueba si el proceso que llego a ready requiere una replanificacion
+
+        if (desalojo)
+        {
+            bool cpusLibres = hayCpus(); // Comprueba si hay CPU libre
+            t_pcb *procesoEntrante = NULL;
+            pthread_mutex_lock(&mutex_ready);
+            if (!list_is_empty(cola_ready))
+            {
+                procesoEntrante = list_get(cola_ready, list_size(cola_ready) - 1); // Get the last process that entered
+                pthread_mutex_unlock(&mutex_ready);
+            }
+            else
+            {
+                // En caso que no haya proceso entrante 
+                // (si puede pasar :) ya que el sem_corto_plazo puede dejar pasar en caso de CPU_LIBRE pero la lista estar vacia)
+                log_info(logger, "Cola ready vacia.");
+                pthread_mutex_unlock(&mutex_ready);
+                continue;
+            }
+            // Si no hay CPUs libres...
+            if (!cpusLibres)
+            {
                 log_info(logger, "No hay CPUs libres");
-                t_pcb* procesoEntrante = list_get(cola_ready, list_size(cola_ready)-1); //Me devuelve el ultimo elemento de la cola, o sea el ultimo proceso que entro
                 cpu = obtener_cpu_con_proc_mas_largo();
-                if (procesoEntrante->estimacion_rafaga < cpu->pcb_exec->estimacion_rafaga - cpu->pcb_exec->timer_exec){ //El proceso entrante tiene mas prioridad q el q ejecuta
+                if (procesoEntrante->estimacion_rafaga < (cpu->pcb_exec->estimacion_rafaga - cpu->pcb_exec->timer_exec))
+                { // El proceso entrante tiene mas prioridad q el q ejecuta
                     log_info(logger, "HAY DESALOJO");
                     log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, 
-                                                                                                                    procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
+                    log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec,
+                             procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
                     cpu->pcb_exec = NULL;
                 }
-                else{ //El q ejecuta tiene mas prioridad
+                else
+                { // El q ejecuta tiene mas prioridad
                     log_info(logger, "NO HAY DESALOJO");
                     log_info(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, 
-                                                                                                                    procesoEntrante->pid, procesoEntrante->timer_exec);
-                    continue; 
+                    log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec,
+                             procesoEntrante->pid, procesoEntrante->timer_exec);
+                    continue;
                 }
-            }else{ //Hay CPU libre, la agarra y ejecuta normal
+            }
+            else
+            { // Hay CPU libre, la agarra y ejecuta normal
                 log_info(logger, "Hay CPU libre");
-                cpu = obtener_cpu_libre(); 
+                cpu = obtener_cpu_libre();
                 log_info(logger, "Obtuvo cpu libre");
             }
         }
 
-        t_pcb* proceso; //Aca guardamos el proceso que va a terminar ejecutando
+        t_pcb *proceso; // Aca guardamos el proceso que va a terminar ejecutando
 
-        if(!desalojo || cpu->pcb_exec == NULL) //Si el algoritmo no tiene desalojo (FIFO/SJF) u ocurrio un desalojo (La cpu no tiene proceso en ejecucion)
-            proceso = obtener_siguiente_de_ready(); //Se busca el proximo proceso con mas prioridad
-        else{  //Si el algoritmo es con desalojo y la cpu tiene un proceso en ejecucion...
-            proceso = cpu->pcb_exec; //Significa que nohubo desalojo, por lo que el proceso seguira siendo el mismo
+        if (!desalojo || cpu->pcb_exec == NULL)
+        {                                           // Si el algoritmo no tiene desalojo (FIFO/SJF) u ocurrio un desalojo (La cpu no tiene proceso en ejecucion)
+            proceso = obtener_siguiente_de_ready(); // Se busca el proximo proceso con mas prioridad
+        }
+        else
+        {                            // Si el algoritmo es con desalojo y la cpu tiene un proceso en ejecucion...
+            proceso = cpu->pcb_exec; // Significa que no hubo desalojo, por lo que el proceso seguira siendo el mismo
         }
 
-        //Si la cpu no tiene proceso la liberamos
-        if (!proceso){
-            //log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
+        // Si la cpu no tiene proceso la liberamos
+        if (!proceso)
+        {
+            // log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
             cpu->disponible = true;
-            //sem_post(&sem_cpu_disponible);  
+            // sem_post(&sem_cpu_disponible);
             continue;
         }
-  
-        cpu->disponible = false; //Esto nose si se pisaria con lo anterior si es que la cpu no tiene proceso, ni idea
-        cpu->pcb_exec = proceso; //Asentamos que el proceso en ejecucion es el que seleccionamos de ready o el que ya venia ejecutando
-        //Si el proceso viene de un estado distinto de EXEC significa que viene de ready, por lo que lo va a cambiar de estado, poner a ejecutar, etc...
-        //Si no hubo desalojo en SRT significa que el proceso que esta en CPU ya esta ejecutando, por lo que no haria falta cambiarlo de estado, mandarlo a ejecutar a cpu, etc..
-        if(proceso->estado_actual != EXEC){
+
+        if (cpu == NULL)
+        { // Safety check: should not happen if logic above is correct
+            log_error(logger, "CPU is NULL, this should not happen. Re-evaluating scheduling logic.");
+            continue;
+        }
+
+        cpu->disponible = false; // Esto nose si se pisaria con lo anterior si es que la cpu no tiene proceso, ni idea
+        cpu->pcb_exec = proceso; // Asentamos que el proceso en ejecucion es el que seleccionamos de ready o el que ya venia ejecutando
+        // Si el proceso viene de un estado distinto de EXEC significa que viene de ready o blocked, por lo que lo va a cambiar de estado, poner a ejecutar, etc...
+        // Si no hubo desalojo en SRT significa que el proceso que esta en CPU ya esta ejecutando, por lo que no haria falta cambiarlo de estado, mandarlo a ejecutar a cpu, etc..
+        if (proceso->estado_actual != EXEC)
+        {
             cambiar_estado(proceso, EXEC);
             enviar_opcode(EJECUTAR_PROCESO, cpu->socket_dispatch);
             enviar_proceso(cpu, proceso);
@@ -358,7 +405,7 @@ void* planificador_corto_plazo(void* arg) {
     return NULL;
 }
 
-//Si quieren descomentar seleccionen todo y hagan ctrl k u
+// Si quieren descomentar seleccionen todo y hagan ctrl k u
 
 // void *planificador_corto_plazo(void *arg)
 // {
@@ -372,8 +419,8 @@ void* planificador_corto_plazo(void* arg) {
 
 //         /*         if (list_size(cola_ready) > 0)
 //                 {
-//                     // sem_post(&sem_procesos_en_ready);            
-//                 } 
+//                     // sem_post(&sem_procesos_en_ready);
+//                 }
 //         */
 //         // Chequeamos si el planificador es SRT entonces buscamos una CPU libre
 //         // en caso de no haber, dame la que tenga el PCB con timer mas largo
@@ -381,7 +428,7 @@ void* planificador_corto_plazo(void* arg) {
 //             cpu = obtener_cpu_libre();
 //             if (cpu == NULL)
 //                 cpu = obtener_cpu_con_proc_mas_largo();
-            
+
 //         } else {
 //             sem_wait(&sem_cpu_disponible);
 //             cpu = obtener_cpu_libre();
@@ -460,17 +507,21 @@ void *timer_bloqueo(void *arg)
     usleep(configKERNEL.tiempo_suspension * 1000); // Espera
     // Si todavia sigue bloqueado lo suspende
     pthread_mutex_lock(&pcb->mutex_pcb);
-    if (pcb->estado_actual == BLOCKED && pcb->timer_flag > 0){
+    if (pcb->estado_actual == BLOCKED && pcb->timer_flag > 0)
+    {
         bool resultado = solicitar_suspender_proceso(pcb->pid);
-        if(resultado){
+        if (resultado)
+        {
             log_info(logger, "##(%d) Suspendiendose...", pcb->pid);
             cambiar_estado(pcb, SUSP_BLOCKED);
-        }else{
+        }
+        else
+        {
             log_error(logger, "##(%d) No se suspendio correctamente", pcb->pid);
         }
-
     }
-    else{
+    else
+    {
         log_info(logger, "##(%d) El proceso ya se desbloqueó antes, timer invalido", pcb->pid);
     }
 
