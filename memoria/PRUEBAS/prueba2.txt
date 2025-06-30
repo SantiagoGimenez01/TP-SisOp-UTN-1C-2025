@@ -1,4 +1,5 @@
 NOOP
+IO teclado 20
 NOOP
 NOOP
 EXIT

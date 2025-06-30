@@ -353,7 +353,7 @@ t_pcb *buscar_pcb_por_pid(uint32_t pid)
     return NULL;
 }
 
-t_cpu *obtener_cpu_por_socket(int socket_dispatch)
+t_cpu *obtener_cpu_por_socket_dispatch(int socket_dispatch)
 {
     pthread_mutex_lock(&mutex_cpus);
     for (int i = 0; i < list_size(cpus); i++)
@@ -368,13 +368,35 @@ t_cpu *obtener_cpu_por_socket(int socket_dispatch)
     pthread_mutex_unlock(&mutex_cpus);
     return NULL;
 }
-
-void marcar_cpu_como_libre(int socket_dispatch)
+t_cpu *obtener_cpu_por_socket_interrupt(int socket_interrupt)
 {
-    t_cpu *cpu = obtener_cpu_por_socket(socket_dispatch);
+    pthread_mutex_lock(&mutex_cpus);
+    for (int i = 0; i < list_size(cpus); i++)
+    {
+        t_cpu *cpu = list_get(cpus, i);
+        if (cpu->socket_interrupt == socket_interrupt)
+        {
+            pthread_mutex_unlock(&mutex_cpus);
+            return cpu;
+        }
+    }
+    pthread_mutex_unlock(&mutex_cpus);
+    return NULL;
+}
+
+void marcar_cpu_como_libre(int socket_cliente, bool es_socket_dispatch)
+{
+    t_cpu *cpu;
+    if (es_socket_dispatch)
+    {
+        cpu = obtener_cpu_por_socket_dispatch(socket_cliente);
+    }
+    else
+    {
+        cpu = obtener_cpu_por_socket_interrupt(socket_cliente);
+    }
     cpu->disponible = true;
     cpu->pcb_exec = NULL;
-    log_info(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_dispatch);
-    sem_post(&sem_corto_plazo);
+    log_info(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_cliente);
     sem_post(&sem_cpu_disponible);
 }

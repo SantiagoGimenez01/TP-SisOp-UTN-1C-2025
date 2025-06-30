@@ -78,19 +78,6 @@ t_pcb *obtener_siguiente_de_ready()
         obtenerIndiceDeProcesoMasCorto(cola_ready, &indexMasCorto);
         proceso = list_remove(cola_ready, indexMasCorto);
     }
-    else if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
-    {
-        // Indice del ultimo ready, osea el que acaba de llegar
-        proceso = list_remove(cola_ready, list_size(cola_ready) - 1);
-        /*         if (!proceso)
-                {
-                    log_info(logger, "Proceso no encontrado en index: %d", list_size(cola_ready) - 1);
-                }
-                else
-                {
-                    log_info(logger, "PCB %d | Index %d", proceso->pid, list_size(cola_ready) - 1);
-                } */
-    }
     else
     {
         log_error(logger, "Algoritmo de planificacion desconocido: %s", configKERNEL.algoritmo_planificacion);
@@ -293,7 +280,7 @@ void *planificador_corto_plazo(void *arg)
         // - Al cambiar de estado un proceso a READY (mientras no venga de EXEC, ya que ese cambio seria por el desalojo, y no queremos replanificar en ese caso)
         // - Al recibir CPU_LIBRE de cualquier cpu.
         sem_wait(&sem_corto_plazo);
- 
+
         log_info(logger, "Entro a corto plazo");
         // Si no hay desalojo...
         if (!desalojo)
@@ -308,7 +295,7 @@ void *planificador_corto_plazo(void *arg)
         // Este semaforo se colgaba esperando un proceso en ready cuando ya tenia en procesos en cola_ready
         // Por eso implemento el otro semaforo que chequea tanto si una CPU se marco libre o si un proceso LLEGÓ a READY
         // Enfasis en llego, ya que no me interesa replanificar si ya chequee desalojo en los procesos de la lista (para eso espero a la CPU_LIBRE)
-        
+
         // Esperamos que haya al menos un proceso en READY
         // sem_wait(&sem_procesos_en_ready);
         // log_info(logger, "Pasa semaforo procesos en ready");
@@ -326,7 +313,7 @@ void *planificador_corto_plazo(void *arg)
             }
             else
             {
-                // En caso que no haya proceso entrante 
+                // En caso que no haya proceso entrante
                 // (si puede pasar :) ya que el sem_corto_plazo puede dejar pasar en caso de CPU_LIBRE pero la lista estar vacia)
                 log_info(logger, "Cola ready vacia.");
                 pthread_mutex_unlock(&mutex_ready);
@@ -337,11 +324,14 @@ void *planificador_corto_plazo(void *arg)
             {
                 log_info(logger, "No hay CPUs libres");
                 cpu = obtener_cpu_con_proc_mas_largo();
-                if (procesoEntrante->estimacion_rafaga < (cpu->pcb_exec->estimacion_rafaga - cpu->pcb_exec->timer_exec))
+                uint64_t ahora = get_timestamp();
+                uint64_t tiempo_ejecucion = ahora - cpu->pcb_exec->momento_entrada_estado;
+                uint64_t estimacion_restante = cpu->pcb_exec->estimacion_rafaga - tiempo_ejecucion;
+                if (procesoEntrante->estimacion_rafaga < estimacion_restante)
                 { // El proceso entrante tiene mas prioridad q el q ejecuta
                     log_info(logger, "HAY DESALOJO");
                     log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec,
+                    log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, estimacion_restante,
                              procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
                     cpu->pcb_exec = NULL;
@@ -350,7 +340,7 @@ void *planificador_corto_plazo(void *arg)
                 { // El q ejecuta tiene mas prioridad
                     log_info(logger, "NO HAY DESALOJO");
                     log_info(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec,
+                    log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, estimacion_restante,
                              procesoEntrante->pid, procesoEntrante->timer_exec);
                     continue;
                 }

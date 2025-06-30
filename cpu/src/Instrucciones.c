@@ -20,9 +20,10 @@ void enviar_estado_proc_kernel(uint32_t pid, uint32_t pc) {
     eliminar_paquete(paquete);
 }
 
-void ejecutar_ciclo(uint32_t pid, uint32_t pc)
+bool ejecutar_ciclo(uint32_t pid, uint32_t pc)
 {
     bool ejecutando = true;
+    bool success = true;
     while (ejecutando)
     {
         // Fase 1: FETCH
@@ -49,6 +50,7 @@ void ejecutar_ciclo(uint32_t pid, uint32_t pc)
 
             // Seteamos la ejecucion en false, liberamos memoria, y continue (no deberia seguir ya que ejecutando = false)
             ejecutando = false;
+            success = false; // No termino por completo de ejecutar (lo usamos en las conexiones para enviar o no el CPU_LIBRE)
             liberar_instruccion(inst);
             free(instruccion);
             continue; // Tengo entendido que no se actualiza el PC si detecta la interrupcion
@@ -63,6 +65,7 @@ void ejecutar_ciclo(uint32_t pid, uint32_t pc)
         liberar_instruccion(inst);
         free(instruccion);
     }
+    return success;
 }
 
 t_instruccion_id obtener_id_instruccion(char *nombre)

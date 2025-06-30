@@ -15,7 +15,7 @@
 
 
 // Ciclo completo de instrucciones
-void ejecutar_ciclo(uint32_t pid, uint32_t pc);
+bool ejecutar_ciclo(uint32_t pid, uint32_t pc);
 
 // Fases del ciclo
 t_instruccion_id obtener_id_instruccion(char* nombre);

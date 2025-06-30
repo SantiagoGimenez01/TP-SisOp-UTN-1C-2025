@@ -59,7 +59,7 @@ void remover_de_cola(t_pcb* pcb, t_estado_proceso estado);
 void agregar_a_cola(t_pcb* pcb, t_estado_proceso estado);
 t_pcb* buscar_pcb_por_pid(uint32_t pid);
 t_cpu* obtener_cpu_por_socket(int socket_dispatch);
-void marcar_cpu_como_libre(int socket_dispatch);
+void marcar_cpu_como_libre(int socket_dispatch, bool es_socket_dispatch);
 int calcularEstimacion(t_pcb *pcb);
 
 #endif

@@ -127,7 +127,9 @@ void operarDispatch(int socket_cliente)
 
         case CPU_LIBRE:
             log_info(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
-            marcar_cpu_como_libre(socket_cliente);
+            marcar_cpu_como_libre(socket_cliente, true);
+            sem_post(&sem_corto_plazo);
+
             // sem_post(&sem_cpu_disponible);
             break;
 
@@ -158,7 +160,8 @@ void operarInterrupt(int socket_cliente)
         {
         case CPU_LIBRE:
             log_info(logger, "CPU en socket %d marco su disponibilidad (por interrupt)", socket_cliente);
-            marcar_cpu_como_libre(socket_cliente);
+            marcar_cpu_como_libre(socket_cliente, false);
+            log_info(logger, "CPU en socket %d marcada como disponible sin replanificar", socket_cliente);
             break;
         case DESALOJAR_PROCESO:
             log_info(logger, "Se recibio DESALOJAR_PROCESO desde CPU (socket %d)", socket_cliente);
@@ -183,7 +186,7 @@ void operarInterrupt(int socket_cliente)
             pcb->pc = pc;
             pcb->timer_exec = timer_exec;
             cambiar_estado(pcb, READY);
-            marcar_cpu_como_libre(socket_cliente);
+            marcar_cpu_como_libre(socket_cliente, false);
             sem_post(&sem_procesos_en_ready);
 
             break;
@@ -250,19 +253,23 @@ void operarIo(int socket_cliente)
             t_pcb *pcb = buscar_pcb_por_pid(pid);
 
             if (pcb)
-            {   
+            {
                 pthread_mutex_lock(&pcb->mutex_pcb);
-                if (pcb->estado_actual == BLOCKED){
+                if (pcb->estado_actual == BLOCKED)
+                {
                     pcb->timer_flag = -1; // invalida el timer
                     // log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
                     cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
                     // sem_post(&sem_procesos_en_ready); Este creo que estaba de mas ya que ya se hace el sem_post cuando se agrega pcb a lista_ready
                     // log_info(logger, "Se hizo un semPost de ready");
-                }else{
+                }
+                else
+                {
                     bool resultado = solicitar_desuspender_proceso(pcb->pid);
 
-                    if(resultado){
-                        cambiar_estado(pcb, SUSP_READY); //Pasamos el proceso a SUSP_READY
+                    if (resultado)
+                    {
+                        cambiar_estado(pcb, SUSP_READY); // Pasamos el proceso a SUSP_READY
                         sem_post(&sem_procesos_en_suspReady);
                     }
                     else

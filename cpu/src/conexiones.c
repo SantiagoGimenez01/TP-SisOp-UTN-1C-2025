@@ -98,9 +98,12 @@ void *escuchar_dispatch(void *arg)
             recibir_pcb(socket_dispatch, &pid, &pc, &estimacion);
 
             log_info(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
-            ejecutar_ciclo(pid, pc);
+            bool success = ejecutar_ciclo(pid, pc);
             // Aca termina de ejecutar el ciclo
-            enviar_opcode(CPU_LIBRE, socket_dispatch);
+            // Si termino exitosamente -> Manda el cpu libre por dispactch
+            // Caso contrario -> El proceso fue desalojado -> Se manda por interrupt en otro lado
+            if(success)
+                enviar_opcode(CPU_LIBRE, socket_dispatch);
             break;
         default:
             log_warning(logger, "Código de operacion no reconocido en DISPATCH: %d", codigo_operacion);
@@ -134,7 +137,7 @@ void *escuchar_interrupt(void *arg)
             flag_desalojo = true;
             pthread_mutex_unlock(&mutex_flag_desalojo);
 
-            enviar_opcode(CPU_LIBRE, socket_dispatch);
+            enviar_opcode(CPU_LIBRE, socket_interrupt);
 
             break;
 
