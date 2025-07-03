@@ -142,13 +142,13 @@ t_cpu *obtener_cpu_libre()
         t_cpu *cpu = list_get(cpus, i);
         if (cpu->disponible)
         {
-            log_info(logger, "Encontro cpu disponible");
+            log_debug(logger, "Encontro cpu disponible");
             cpu_libre = cpu;
             // cpu->disponible = false;
             break;
         }
     }
-    log_info(logger, "La cpu elegida es %d", cpu_libre->id);
+    log_debug(logger, "La cpu elegida es %d", cpu_libre->id);
     pthread_mutex_unlock(&mutex_cpus);
     return cpu_libre;
 }
@@ -181,14 +181,14 @@ t_pcb *obtener_siguiente_de_suspReady()
 
 void *planificador_largo_plazo(void *arg)
 {
-    log_info(logger, "Esperando Enter para iniciar planificacion...");
+    log_debug(logger, "Esperando Enter para iniciar planificacion...");
     getchar();
-    log_info(logger, "Planificacion de largo plazo iniciada.");
+    log_debug(logger, "Planificacion de largo plazo iniciada.");
 
     while (1)
     {
         t_pcb *siguiente;
-        log_info(logger, "ENTRO PLANIFICACION.");
+        log_debug(logger, "ENTRO PLANIFICACION.");
         sem_wait(&sem_procesos_que_van_a_ready);
         if (list_is_empty(cola_susp_ready))
         {
@@ -220,7 +220,7 @@ void *planificador_largo_plazo(void *arg)
             // sem_post(&sem_procesos_en_ready);  // Avisar al planificador corto plazo
             // sem_post(&sem_cpu_disponible); // esto no lo tengo que hacer aca solo cuando me instancio por primera vez!
 
-            log_info(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
+            log_debug(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
         }
         else
         {
@@ -238,7 +238,7 @@ bool hayDesalojo()
     else if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
         return true;
     else
-        log_info(logger, "Algoritmo desconocido");
+        log_error(logger, "Algoritmo desconocido");
 }
 
 bool hayCpus()
@@ -269,7 +269,7 @@ nada y pase a EXIT no haga un sem_post de mas).
 void *planificador_corto_plazo(void *arg)
 {
 
-    log_info(logger, "Planifiacion de corto plazo iniciada");
+    log_debug(logger, "Planifiacion de corto plazo iniciada");
     t_cpu *cpu;
     bool desalojo = hayDesalojo(); // Comprueba si el algoritmo del planificador tiene desalojo
     while (1)
@@ -281,15 +281,15 @@ void *planificador_corto_plazo(void *arg)
         // - Al recibir CPU_LIBRE de cualquier cpu.
         sem_wait(&sem_corto_plazo);
 
-        log_info(logger, "Entro a corto plazo");
+        log_debug(logger, "Entro a corto plazo");
         // Si no hay desalojo...
         if (!desalojo)
         {
-            log_info(logger, "No hay desalojo en este algoritmo");
+            log_debug(logger, "No hay desalojo en este algoritmo");
             // Esperar que haya al menos una CPU libre
             sem_wait(&sem_cpu_disponible);
             cpu = obtener_cpu_libre();
-            log_info(logger, "Obtuvo cpu libre");
+            log_debug(logger, "Obtuvo cpu libre");
         }
 
         // Este semaforo se colgaba esperando un proceso en ready cuando ya tenia en procesos en cola_ready
@@ -315,41 +315,41 @@ void *planificador_corto_plazo(void *arg)
             {
                 // En caso que no haya proceso entrante
                 // (si puede pasar :) ya que el sem_corto_plazo puede dejar pasar en caso de CPU_LIBRE pero la lista estar vacia)
-                log_info(logger, "Cola ready vacia.");
+                log_debug(logger, "Cola ready vacia.");
                 pthread_mutex_unlock(&mutex_ready);
                 continue;
             }
             // Si no hay CPUs libres...
             if (!cpusLibres)
             {
-                log_info(logger, "No hay CPUs libres");
+                log_debug(logger, "No hay CPUs libres");
                 cpu = obtener_cpu_con_proc_mas_largo();
                 uint64_t ahora = get_timestamp();
                 uint64_t tiempo_ejecucion = ahora - cpu->pcb_exec->momento_entrada_estado;
                 uint64_t estimacion_restante = cpu->pcb_exec->estimacion_rafaga - tiempo_ejecucion;
                 if (procesoEntrante->estimacion_rafaga < estimacion_restante)
                 { // El proceso entrante tiene mas prioridad q el q ejecuta
-                    log_info(logger, "HAY DESALOJO");
-                    log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, estimacion_restante,
+                    log_debug(logger, "HAY DESALOJO");
+                    log_debug(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
+                    log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, estimacion_restante,
                              procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
                     cpu->pcb_exec = NULL;
                 }
                 else
                 { // El q ejecuta tiene mas prioridad
-                    log_info(logger, "NO HAY DESALOJO");
-                    log_info(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, estimacion_restante,
+                    log_debug(logger, "NO HAY DESALOJO");
+                    log_debug(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
+                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, estimacion_restante,
                              procesoEntrante->pid, procesoEntrante->timer_exec);
                     continue;
                 }
             }
             else
             { // Hay CPU libre, la agarra y ejecuta normal
-                log_info(logger, "Hay CPU libre");
+                log_debug(logger, "Hay CPU libre");
                 cpu = obtener_cpu_libre();
-                log_info(logger, "Obtuvo cpu libre");
+                log_debug(logger, "Obtuvo cpu libre");
             }
         }
 
@@ -374,8 +374,8 @@ void *planificador_corto_plazo(void *arg)
         }
 
         if (cpu == NULL)
-        { // Safety check: should not happen if logic above is correct
-            log_error(logger, "CPU is NULL, this should not happen. Re-evaluating scheduling logic.");
+        {
+            log_error(logger, "CPU NULL en planificador de corto plazo");
             continue;
         }
 
@@ -388,92 +388,16 @@ void *planificador_corto_plazo(void *arg)
             cambiar_estado(proceso, EXEC);
             enviar_opcode(EJECUTAR_PROCESO, cpu->socket_dispatch);
             enviar_proceso(cpu, proceso);
-            log_info(logger, "Proceso %d enviado a ejecucion en CPU %d", proceso->pid, cpu->id);
+            log_debug(logger, "Proceso %d enviado a ejecucion en CPU %d", proceso->pid, cpu->id);
         }
     }
 
     return NULL;
 }
 
-// Si quieren descomentar seleccionen todo y hagan ctrl k u
-
-// void *planificador_corto_plazo(void *arg)
-// {
-
-//     log_info(logger, "Planificacion de corto plazo iniciada");
-
-//     while (1)
-//     {
-//         // log_info(logger, "Entro a corto plazo");
-//         t_cpu *cpu = NULL;
-
-//         /*         if (list_size(cola_ready) > 0)
-//                 {
-//                     // sem_post(&sem_procesos_en_ready);
-//                 }
-//         */
-//         // Chequeamos si el planificador es SRT entonces buscamos una CPU libre
-//         // en caso de no haber, dame la que tenga el PCB con timer mas largo
-//         if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && !list_is_empty(cpus)){
-//             cpu = obtener_cpu_libre();
-//             if (cpu == NULL)
-//                 cpu = obtener_cpu_con_proc_mas_largo();
-
-//         } else {
-//             sem_wait(&sem_cpu_disponible);
-//             cpu = obtener_cpu_libre();
-//         }
-//         // Esperamos que haya al menos un proceso en READY
-//         sem_wait(&sem_procesos_en_ready);
-//         // log_info(logger, "Paso el wait de procesos en ready");
-//         t_pcb *proceso = obtener_siguiente_de_ready();
-//         // log_info(logger, "## (%d) Fue encontrado en ready", proceso->pid);
-//         // log_info(logger, "CPU %d", cpu->id);
-//         if (!proceso)
-//         {
-//             // log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
-//             cpu->disponible = true;
-//             // sem_post(&sem_cpu_disponible);
-//             continue;
-//         }
-//         log_info(logger, "CPU: %i | Proceso: %i", cpu->id, proceso->pid);
-//         if (cpu->pcb_exec == NULL)
-//         {
-//             log_info(logger, "CPU no tiene proceso ejecutando.");
-//         }
-//         if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && cpu->pcb_exec != NULL)
-//         {
-//             if (proceso->estimacion_rafaga < cpu->pcb_exec->estimacion_rafaga)
-//             {
-//                 log_info(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, proceso->pid);
-//                 log_info(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, proceso->pid, proceso->estimacion_rafaga);
-//                 enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
-//                 cpu->pcb_exec = NULL;
-//             }
-//             else
-//             {
-//                 log_info(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, proceso->pid);
-//                 log_info(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, cpu->pcb_exec->timer_exec, proceso->pid, proceso->timer_exec);
-//                 log_info(logger, "a");
-//                 list_add(cola_ready, proceso);
-//                 continue;
-//             }
-//         }
-
-//         cpu->pcb_exec = proceso;
-//         cpu->disponible = false;
-//         cambiar_estado(proceso, EXEC);
-//         enviar_opcode(EJECUTAR_PROCESO, cpu->socket_dispatch);
-//         enviar_proceso(cpu, proceso);
-//         log_info(logger, "Proceso %d enviado a ejecucion en CPU %d", proceso->pid, cpu->id);
-//     }
-
-//     return NULL;
-// }
-
 void *planificador_mediano_plazo(void *arg)
 {
-    log_info(logger, "Planificacion de mediano plazo iniciada");
+    log_debug(logger, "Planificacion de mediano plazo iniciada");
 
     while (1)
     {
@@ -534,7 +458,7 @@ void iniciar_planificadores()
     pthread_create(&hilo_mediano_plazo, NULL, planificador_mediano_plazo, NULL);
     pthread_detach(hilo_mediano_plazo);
 
-    log_info(logger, "Planificadores de largo, corto y mediano plazo iniciados.");
+    log_debug(logger, "Planificadores de largo, corto y mediano plazo iniciados.");
 }
 
 void enviar_proceso(t_cpu *cpu, t_pcb *pcb)
@@ -549,7 +473,7 @@ void enviar_proceso(t_cpu *cpu, t_pcb *pcb)
     enviar_paquete(paquete, cpu->socket_dispatch);
     eliminar_paquete(paquete);
 
-    log_info(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d",
+    log_debug(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d",
              cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga, pcb->timer_exec);
 }
 

@@ -14,8 +14,8 @@ int main(int argc, char* argv[]) {
 
     cargarConfiguracionKernel("kernel.config", &configKERNEL, &logger);
 
-    log_info(logger, "Archivo pseudocodigo INICIAL: %s", archivo_pseudocodigo);
-    log_info(logger, "Tamanio del proceso INICIAL: %d", tamanio_proceso);
+    log_debug(logger, "Archivo pseudocodigo INICIAL: %s", archivo_pseudocodigo);
+    log_debug(logger, "Tamanio del proceso INICIAL: %d", tamanio_proceso);
     
     establecerConexiones();
     

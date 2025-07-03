@@ -71,7 +71,7 @@ void agregarNuevaCpuInc(int socket_cliente, int id_cpu)
     nueva_cpu->id = id_cpu;
 
     list_add(cpus_incompletas, nueva_cpu);
-    log_info(logger, "CPU incompleta (solo DISPATCH) con ID: %d", nueva_cpu->id);
+    log_debug(logger, "CPU incompleta (solo DISPATCH) con ID: %d", nueva_cpu->id);
 }
 
 t_cpu *buscar_cpu_por_id(int id_cpu)
@@ -95,7 +95,7 @@ void agregarNuevaCpu(int socket_interrupt, int id_cpu)
         cpu->socket_interrupt = socket_interrupt;
         list_add(cpus, cpu);
         list_remove_element(cpus_incompletas, cpu);
-        log_info(logger, "CPU ID %d completa (DISPATCH + INTERRUPT)", cpu->id);
+        log_debug(logger, "CPU ID %d completa (DISPATCH + INTERRUPT)", cpu->id);
     }
     else
     {
@@ -116,7 +116,7 @@ void agregarNuevaIo(char *nombre, int socket_cliente)
 
     list_add(ios, nueva_io);
 
-    log_info(logger, "Se agrego IO '%s' al sistema.", nombre);
+    log_debug(logger, "Se agrego IO '%s' al sistema.", nombre);
 }
 
 void inicializar_proceso(char *archivo_pseudocodigo, int tamanio)
@@ -140,7 +140,7 @@ void inicializar_proceso(char *archivo_pseudocodigo, int tamanio)
 
     log_info(logger, "## (%d) Se crea el proceso - Estado: NEW", nuevo_pcb->pid);
     list_add(pcbs, nuevo_pcb);
-    log_info(logger, "Se agrego un proceso a la lista de PCBS, TAM LISTA: %d", list_size(pcbs));
+    log_debug(logger, "Se agrego un proceso a la lista de PCBS, TAM LISTA: %d", list_size(pcbs));
     // encolar_en_new(nuevo_pcb);
     cambiar_estado(nuevo_pcb, NEW);
 }
@@ -157,13 +157,13 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     {
         pcb->rafaga_anterior = duracion;
         pcb->estimacion_anterior = pcb->estimacion_rafaga;
-        log_info(logger, "## (%d): Rafaga anterior = %dms, Estimacion anterior = %dms", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
+        log_debug(logger, "(%d): Rafaga anterior = %dms, Estimacion anterior = %dms", pcb->pid, pcb->rafaga_anterior, pcb->estimacion_anterior);
     }
 
     if ((pcb->estado_actual == BLOCKED || pcb->estado_actual == SUSP_READY) && nuevo_estado == READY && strcmp(configKERNEL.algoritmo_planificacion, "FIFO") != 0)
     {
         pcb->estimacion_rafaga = calcularEstimacion(pcb);
-        log_info(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
+        log_debug(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
     }
     // Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta
     // ejecutando termina, el semaforo de procesos en ready no va a dejar avanzar (igual no estaria funcionando xd)
@@ -176,7 +176,7 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS)
     {
         // sem_post(&sem_procesos_en_ready);
-        log_info(logger, "Proceso %d abandono la CPU e hizo el post de ready", pcb->pid);
+        log_debug(logger, "Proceso %d abandono la CPU e hizo el post de ready", pcb->pid);
     }
 
     // Remover PCB de su cola anterior
@@ -397,6 +397,6 @@ void marcar_cpu_como_libre(int socket_cliente, bool es_socket_dispatch)
     }
     cpu->disponible = true;
     cpu->pcb_exec = NULL;
-    log_info(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_cliente);
+    log_debug(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_cliente);
     sem_post(&sem_cpu_disponible);
 }

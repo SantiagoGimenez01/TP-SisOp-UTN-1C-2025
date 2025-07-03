@@ -116,7 +116,7 @@ bool solicitar_desuspender_proceso(uint32_t pid){
     enviar_paquete(paquete, socket_memoria);
     eliminar_paquete(paquete);
 
-    log_info(logger, "##(%d) Se envio a memoria con la orden de DESUSPENDER", pid);
+    log_debug(logger, "(%d) Se envio a memoria con la orden de DESUSPENDER", pid);
 
     //Esperamos la respuesta de memoria
     int respuesta;
@@ -148,7 +148,7 @@ bool solicitar_suspender_proceso(uint32_t pid){
     agregar_int_a_paquete(paquete, pid);
     enviar_paquete(paquete, socket_memoria);
     eliminar_paquete(paquete);
-    log_info(logger, "##(%d) Se envio a memoria con la orden de SUSPENDER", pid);
+    log_debug(logger, "(%d) Se envio a memoria con la orden de SUSPENDER", pid);
 
     //Esperamos la respuesta de memoria
     int respuesta;
