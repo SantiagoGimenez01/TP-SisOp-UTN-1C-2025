@@ -15,7 +15,7 @@ void establecerConexiones(char* nombre_IO) {
     // Conexion persistente al KERNEL
     socket_kernel = crearConexion(configIO.ip_kernel, puerto_kernel, logger);
     comprobarSocket(socket_kernel, "IO", "KERNEL");
-    log_info(logger, "Conectado a KERNEL desde IO.");
+    log_debug(logger, "Conectado a KERNEL desde IO.");
 
     enviar_handshake(socket_kernel, MODULO_IO);
 
@@ -56,7 +56,7 @@ void escuchar_pedidos_io() {
 
                 usleep(tiempo*1000); //Hace E/S
 
-                log_info(logger, "Tiempo de IO efectuado: %dms", tiempo);
+                log_debug(logger, "Tiempo de IO efectuado: %dms", tiempo);
                 log_info(logger, "## PID: %d - Fin de IO", pid);
 
                 enviar_opcode(FIN_IO, socket_kernel);

@@ -22,10 +22,10 @@ void establecerConexiones(int id_cpu)
     // Conexion persistente a MEMORIA
     socket_memoria = crearConexion(configCPU.ip_memoria, puerto_memoria, logger);
     comprobarSocket(socket_memoria, "MEMORIA");
-    log_info(logger, "Conectado a MEMORIA.");
+    log_debug(logger, "Conectado a MEMORIA.");
     enviar_handshake(socket_memoria, MODULO_CPU_DISPATCH);
     send(socket_memoria, &id_cpu, sizeof(int), 0);
-    log_info(logger, "ID de CPU enviado a Memoria: %d", id_cpu);
+    log_debug(logger, "ID de CPU enviado a Memoria: %d", id_cpu);
     enviar_opcode(PEDIR_CONFIGURACION, socket_memoria);
 
     t_paquete *paquete_config = recibir_paquete(socket_memoria);
@@ -39,13 +39,13 @@ void establecerConexiones(int id_cpu)
     offset += sizeof(int);
 
     eliminar_paquete(paquete_config);
-    log_info(logger, "Configuracion recibida: TamPagina=%d, CantEntradas=%d, CantNiveles=%d",
+    log_debug(logger, "Configuracion recibida: TamPagina=%d, CantEntradas=%d, CantNiveles=%d",
              tam_pagina, cant_entradas_por_tabla, cantidad_niveles);
 
     // Conexion persistente a KERNEL - DISPATCH
     socket_dispatch = crearConexion(configCPU.ip_kernel, puerto_dispatch, logger);
     comprobarSocket(socket_dispatch, "KERNEL DISPATCH");
-    log_info(logger, "Conectado a KERNEL DISPATCH.");
+    log_debug(logger, "Conectado a KERNEL DISPATCH.");
 
     send(socket_dispatch, &id_cpu, sizeof(int), 0);
     enviar_handshake(socket_dispatch, MODULO_CPU_DISPATCH);
@@ -53,7 +53,7 @@ void establecerConexiones(int id_cpu)
     // Conexion persistente a KERNEL - INTERRUPT
     socket_interrupt = crearConexion(configCPU.ip_kernel, puerto_interrupt, logger);
     comprobarSocket(socket_interrupt, "KERNEL INTERRUPT");
-    log_info(logger, "Conectado a KERNEL INTERRUPT.");
+    log_debug(logger, "Conectado a KERNEL INTERRUPT.");
     send(socket_interrupt, &id_cpu, sizeof(int), 0);
     enviar_handshake(socket_interrupt, MODULO_CPU_INTERRUPT);
 
@@ -89,7 +89,7 @@ void *escuchar_dispatch(void *arg)
         switch (codigo_operacion)
         {
         case EJECUTAR_PROCESO:
-            log_info(logger, "Se recibio EJECUTAR_PROCESO por DISPATCH");
+            log_debug(logger, "Se recibio EJECUTAR_PROCESO por DISPATCH");
 
             uint32_t pid = 0;
             uint32_t pc = 0;
@@ -97,7 +97,7 @@ void *escuchar_dispatch(void *arg)
 
             recibir_pcb(socket_dispatch, &pid, &pc, &estimacion);
 
-            log_info(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
+            log_debug(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
             bool success = ejecutar_ciclo(pid, pc);
             // Aca termina de ejecutar el ciclo
             // Si termino exitosamente -> Manda el cpu libre por dispactch
@@ -126,11 +126,11 @@ void *escuchar_interrupt(void *arg)
             log_error(logger, "Error al recibir mensaje por INTERRUPT o desconexion");
             break;
         }
-
+        log_info(logger, "## Llega interrupción al puerto Interrupt");
         switch (codigo_operacion)
         {
         case INTERRUPCION:
-            log_info(logger, "Se recibio una INTERRUPCION desde Kernel");
+            log_debug(logger, "Se recibio una INTERRUPCION desde Kernel");
 
             // Marcamos el flag de desalojo para interrumpir el ciclo
             pthread_mutex_lock(&mutex_flag_desalojo);
@@ -165,5 +165,5 @@ void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc, uint32_t *est
 
     eliminar_paquete(paquete);
 
-    log_info(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d", *pid, *pc, *estimacion);
+    log_debug(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d", *pid, *pc, *estimacion);
 }

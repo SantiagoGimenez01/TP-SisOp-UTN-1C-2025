@@ -18,7 +18,7 @@ bool generar_dump(t_proceso_en_memoria* proceso) {
     escribir_paginas_recursivamente(proceso->tabla_nivel_1, 1, archivo, &paginas_escritas);
 
     fclose(archivo);
-    log_info(logger, "Dump completado para PID %d: %d paginas copiadas a %s", proceso->pid, paginas_escritas, nombre_archivo);
+    log_debug(logger, "Dump completado para PID %d: %d paginas copiadas a %s", proceso->pid, paginas_escritas, nombre_archivo);
     return true;
 }
 
@@ -77,14 +77,14 @@ void suspender_proceso(t_proceso_en_memoria* proceso) {
         return;
     }
 
-    log_info(logger, "Iniciando suspension de PID %d", proceso->pid);
+    log_debug(logger, "Iniciando suspension de PID %d", proceso->pid);
 
     suspender_paginas_recursivamente(proceso->tabla_nivel_1, 1, proceso, swap);
 
     fclose(swap);
 
     usleep(configMEMORIA.retardo_swap * 1000);  // retardo en milisegundos
-    log_info(logger, "Proceso %d suspendido correctamente", proceso->pid);
+    log_debug(logger, "Proceso %d suspendido correctamente", proceso->pid);
 }
 
 void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_proceso_en_memoria* proceso, FILE* swap) {

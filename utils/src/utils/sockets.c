@@ -39,7 +39,7 @@ int iniciarServidor(char* puerto, t_log* logger, char* nombre_modulo) {
         exit(EXIT_FAILURE);
     }
 
-    log_info(logger, "Servidor %s escuchando en el puerto %s", nombre_modulo, puerto);
+    log_debug(logger, "Servidor %s escuchando en el puerto %s", nombre_modulo, puerto);
     return socket_servidor;
 }
 
@@ -54,7 +54,7 @@ int esperarCliente(int socket_servidor, t_log* logger) {
         exit(EXIT_FAILURE);
     }
 
-    log_info(logger, "Se conecto un cliente nuevo. FD: %d", socket_cliente);
+    log_debug(logger, "Se conecto un cliente nuevo. FD: %d", socket_cliente);
     return socket_cliente;
 }
 

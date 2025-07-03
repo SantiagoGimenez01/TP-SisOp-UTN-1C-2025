@@ -59,7 +59,7 @@ void reemplazar_tlb_fifo(uint32_t nro_pagina, uint32_t marco) {
     if (list_size(tlb) == 0) return; 
 
     t_entrada_tlb* victima = list_remove(tlb, 0);
-    log_info(logger, "TLB reemplazo FIFO: se reemplazo la pagina %d", victima->nro_pagina);
+    log_debug(logger, "TLB reemplazo FIFO: se reemplazo la pagina %d", victima->nro_pagina);
 
     free(victima);
 
@@ -82,7 +82,7 @@ void reemplazar_tlb_lru(uint32_t nro_pagina, int marco) {
             victima = entrada;
         }
     }
-    log_info(logger, "TLB reemplazo LRU: se reemplazo la pagina %d", victima->nro_pagina);
+    log_debug(logger, "TLB reemplazo LRU: se reemplazo la pagina %d", victima->nro_pagina);
 
     victima->nro_pagina = nro_pagina;
     victima->marco = marco;
@@ -206,7 +206,7 @@ void reemplazar_cache_clock_m(uint32_t pid, t_direccion_fisica* dir, uint32_t ma
     t_entrada_cache* victima = list_get(cache_paginas, puntero_clock_m);
     if (victima->modificado) {
         escribir_en_memoria(pid, dir, victima->marco, victima->contenido);
-        log_info(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Página: %d - Frame: %d", pid, victima->nro_pagina, victima->marco);
+        log_debug(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Página: %d - Frame: %d", pid, victima->nro_pagina, victima->marco);
     }
 
     free(victima->contenido);
@@ -229,7 +229,7 @@ void reemplazar_cache_clock(uint32_t pid, t_direccion_fisica* dir, uint32_t marc
         if (!actual->uso) {
             if (actual->modificado) {
                 escribir_en_memoria(pid, dir, actual->marco, actual->contenido);
-                log_info(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Pagina: %d - Frame: %d", pid, actual->nro_pagina, actual->marco);
+                log_debug(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Pagina: %d - Frame: %d", pid, actual->nro_pagina, actual->marco);
             }
 
             free(actual->contenido);

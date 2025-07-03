@@ -28,11 +28,11 @@ void escribir_en_memoria(uint32_t pid, t_direccion_fisica* dir, uint32_t marco, 
 
     agregar_int_a_paquete(paquete, dir->desplazamiento);
     agregar_string_a_paquete(paquete, nuevo_contenido);
-        log_info(logger, "Escribiendo: pid=%d, nro_pagina=%d, marco=%d, desplazamiento=%d, contenido=%s",
+        log_debug(logger, "Escribiendo: pid=%d, nro_pagina=%d, marco=%d, desplazamiento=%d, contenido=%s",
          pid, dir->numero_pagina, marco, dir->desplazamiento, nuevo_contenido);
 
         for (int i = 0; i < cantidad_niveles; i++) {
-            log_info(logger, "Entrada nivel[%d] = %d", i, dir->entradas_niveles[i]);
+            log_debug(logger, "Entrada nivel[%d] = %d", i, dir->entradas_niveles[i]);
         }
 
     enviar_paquete(paquete, socket_memoria);
@@ -73,10 +73,10 @@ void actualizar_paginas_modificadas_en_memoria(uint32_t pid) {
             t_paquete* paquete = crear_paquete();
             agregar_int_a_paquete(paquete, pid);
             agregar_int_a_paquete(paquete, entrada->marco);
-            log_info(logger, "DEBUG CPU - Mandando al marco %d el contenido '%s'", entrada->marco, entrada->contenido);
+            log_debug(logger, "DEBUG CPU - Mandando al marco %d el contenido '%s'", entrada->marco, entrada->contenido);
 
             agregar_bloque_a_paquete(paquete, entrada->contenido, tam_pagina);
-            log_info(logger, "DEBUG CPU - Mandando al marco %d el contenido (parcial): '%.20s'", entrada->marco, entrada->contenido);
+            log_debug(logger, "DEBUG CPU - Mandando al marco %d el contenido (parcial): '%.20s'", entrada->marco, entrada->contenido);
             enviar_paquete(paquete, socket_memoria);
             eliminar_paquete(paquete);
 
@@ -87,7 +87,7 @@ void actualizar_paginas_modificadas_en_memoria(uint32_t pid) {
             }
 
 
-            log_info(logger, "PID: %d - Pagina Actualizada de Cache a Memoria - Página: %d - Frame: %d", pid, entrada->nro_pagina, entrada->marco);
+            log_info(logger, "## PID: %d - Memory Update - Página: %d - Frame: %d", pid, entrada->nro_pagina, entrada->marco);
         }
     }
     
@@ -113,6 +113,7 @@ char* pedir_fragmento_de_memoria(int pid, int marco, int desplazamiento, int tam
 
 char* pedir_instruccion_a_memoria(uint32_t pid, uint32_t pc) {
     // Enviar pedido
+    log_info(logger, "## PID: %i - FETCH - Program Counter: %i", pid, pc);
     enviar_opcode(PEDIR_INSTRUCCION, socket_memoria);
     t_paquete* paquete = crear_paquete();
     agregar_int_a_paquete(paquete, pid);
@@ -124,12 +125,11 @@ char* pedir_instruccion_a_memoria(uint32_t pid, uint32_t pc) {
     t_paquete* respuesta = recibir_paquete(socket_memoria);
     char* instruccion = recibir_string_de_paquete(respuesta);
     eliminar_paquete(respuesta);
-
     return instruccion; 
 }
 
 bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
-    log_info(logger, "CPU (PID %d): Deteniendo ejecucion por SYSCALL %s", pid, nombre_syscall(inst->id));
+    log_debug(logger, "CPU (PID %d): Deteniendo ejecucion por SYSCALL %s", pid, nombre_syscall(inst->id));
 
 
     enviar_opcode(SYSCALL, socket_dispatch);
@@ -148,7 +148,7 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
         char* nombre_archivo = inst->parametros[0];
         int tamanio = atoi(inst->parametros[1]);
         agregar_string_a_paquete(paquete, nombre_archivo);
-        log_info(logger, "Se agrego el nombre archivo: %s  y el tamanio %d al paquete", nombre_archivo, tamanio);
+        log_debug(logger, "Se agrego el nombre archivo: %s  y el tamanio %d al paquete", nombre_archivo, tamanio);
         agregar_int_a_paquete(paquete, tamanio);
     }
     
@@ -164,10 +164,10 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
     }
 
     if (respuesta == CONTINUAR_PROCESO) {
-        log_info(logger, "CPU (PID %d): Kernel indico CONTINUAR", pid);
+        log_debug(logger, "CPU (PID %d): Kernel indico CONTINUAR", pid);
         return true;  // Sigue ejecutando
     }else if(respuesta == DESALOJAR_PROCESO) {
-        log_info(logger, "CPU (PID %d): Kernel indico DESALOJO", pid);
+        log_debug(logger, "CPU (PID %d): Kernel indico DESALOJO", pid);
     
         if (cache_paginas != NULL) {
             limpiar_cache();
@@ -188,7 +188,7 @@ bool enviar_syscall_a_kernel(t_instruccion* inst, uint32_t pid, uint32_t pc) {
 void limpiar_tlb() {
     list_destroy_and_destroy_elements(tlb, free);
     tlb = list_create();
-    log_info(logger, "TLB limpiada");
+    log_debug(logger, "TLB limpiada");
 }
 
 void limpiar_cache() {
@@ -202,5 +202,5 @@ void limpiar_cache() {
 
     list_destroy_and_destroy_elements(cache_paginas, free);
     cache_paginas = list_create();
-    log_info(logger, "Cache de páginas limpiada");
+    log_debug(logger, "Cache de páginas limpiada");
 }

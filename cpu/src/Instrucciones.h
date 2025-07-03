@@ -23,4 +23,7 @@ t_instruccion* decode_instruccion(char* linea);
 bool ejecutar_instruccion(t_instruccion* inst, uint32_t pid, uint32_t* pc);
 void liberar_instruccion(t_instruccion* inst);
 
+char *nombre_instruccion(t_instruccion* inst);
+char *nombre_parametros(t_instruccion* inst);
+
 #endif 
