@@ -11,14 +11,15 @@ pthread_mutex_t mutex_flag_desalojo;
 
 
 int main(int argc, char* argv[]) {
-
     if (argc < 2) {
         printf("Falta pasar el ID de CPU como argumento.\n");
         return EXIT_FAILURE;
     }
     id_cpu = atoi(argv[1]); 
     pthread_mutex_init(&mutex_flag_desalojo, NULL);
-    cargarConfiguracionCPU("cpu.config", &configCPU, &logger);
+    char* path_config = string_new();
+    string_append_with_format(&path_config, "cpu%s.config", string_itoa(id_cpu));
+    cargarConfiguracionCPU(path_config, id_cpu, &configCPU, &logger);
     establecerConexiones(id_cpu);
     escucharOperaciones();
     while(1){
