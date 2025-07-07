@@ -287,7 +287,10 @@ void *planificador_corto_plazo(void *arg)
         {
             log_debug(logger, "No hay desalojo en este algoritmo");
             // Esperar que haya al menos una CPU libre
-            sem_wait(&sem_cpu_disponible);
+            if (!hayCpus())
+            {
+                continue;
+            }
             cpu = obtener_cpu_libre();
             log_debug(logger, "Obtuvo cpu libre");
         }
@@ -332,7 +335,7 @@ void *planificador_corto_plazo(void *arg)
                     log_debug(logger, "HAY DESALOJO");
                     log_debug(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
                     log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, estimacion_restante,
-                             procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
+                              procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
                     cpu->pcb_exec = NULL;
                 }
@@ -341,7 +344,7 @@ void *planificador_corto_plazo(void *arg)
                     log_debug(logger, "NO HAY DESALOJO");
                     log_debug(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
                     log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, estimacion_restante,
-                             procesoEntrante->pid, procesoEntrante->timer_exec);
+                              procesoEntrante->pid, procesoEntrante->timer_exec);
                     continue;
                 }
             }
@@ -474,7 +477,7 @@ void enviar_proceso(t_cpu *cpu, t_pcb *pcb)
     eliminar_paquete(paquete);
 
     log_debug(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d",
-             cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga, pcb->timer_exec);
+              cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga, pcb->timer_exec);
 }
 
 void agregar_double_a_paquete(t_paquete *paquete, double valor)

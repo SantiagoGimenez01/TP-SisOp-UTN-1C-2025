@@ -1,6 +1,7 @@
 #include "syscalls.h"
 
-void procesar_syscall(t_paquete* paquete, int socket_cpu) {
+void procesar_syscall(t_paquete *paquete, int socket_cpu)
+{
     int offset = 0;
     t_instruccion_id syscall_id;
     memcpy(&syscall_id, paquete->buffer->stream + offset, sizeof(int));
@@ -13,184 +14,233 @@ void procesar_syscall(t_paquete* paquete, int socket_cpu) {
     memcpy(&pc, paquete->buffer->stream + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
-    t_pcb* pcb = buscar_pcb_por_pid(pid);
+    t_pcb *pcb = buscar_pcb_por_pid(pid);
     pcb->pc = pc;
 
     log_debug(logger, "Proceso %d devuelto a Kernel desde socket CPU %d. Motivo: %s", pcb->pid, socket_cpu, nombre_syscall(syscall_id));
     log_info(logger, "## (%i) - Solicitó syscall: %s", pcb->pid, nombre_syscall(syscall_id));
-    switch (syscall_id) {
-        case IO: {
-            char* nombre_io = recibir_string_de_paquete_con_offset(paquete, &offset);
-            int tiempo;
-            memcpy(&tiempo, paquete->buffer->stream + offset, sizeof(int));
-            offset += sizeof(int);
-            
-            log_info(logger, "## (%i) - Bloqueado por IO: %s", pid, nombre_io);
+    switch (syscall_id)
+    {
+    case IO:
+    {
+        char *nombre_io = recibir_string_de_paquete_con_offset(paquete, &offset);
+        int tiempo;
+        memcpy(&tiempo, paquete->buffer->stream + offset, sizeof(int));
+        offset += sizeof(int);
 
-            log_debug(logger, "SYSCALL IO: Proceso %d requiere IO %s por %d ms", pid, nombre_io, tiempo);
+        log_info(logger, "## (%i) - Bloqueado por IO: %s", pid, nombre_io);
 
-            atender_syscall_io(pcb, nombre_io, tiempo, socket_cpu);
+        log_debug(logger, "SYSCALL IO: Proceso %d requiere IO %s por %d ms", pid, nombre_io, tiempo);
 
-            free(nombre_io);
-            break;
-        }
+        atender_syscall_io(pcb, nombre_io, tiempo, socket_cpu);
 
-        case INIT_PROC: {
-            char* nombre_archivo = recibir_string_de_paquete_con_offset(paquete, &offset);
-            int tamanio;
-            memcpy(&tamanio, paquete->buffer->stream + offset, sizeof(int));
-            offset += sizeof(int);
+        free(nombre_io);
+        break;
+    }
 
-            log_debug(logger, "SYSCALL INIT_PROC: Crear proceso con archivo %s y tamaño %d", nombre_archivo, tamanio);
+    case INIT_PROC:
+    {
+        char *nombre_archivo = recibir_string_de_paquete_con_offset(paquete, &offset);
+        int tamanio;
+        memcpy(&tamanio, paquete->buffer->stream + offset, sizeof(int));
+        offset += sizeof(int);
 
-            atender_syscall_init_proc(pcb, nombre_archivo, tamanio, socket_cpu);
+        log_debug(logger, "SYSCALL INIT_PROC: Crear proceso con archivo %s y tamaño %d", nombre_archivo, tamanio);
 
-            free(nombre_archivo);
-            break;
-        }
+        atender_syscall_init_proc(pcb, nombre_archivo, tamanio, socket_cpu);
 
-        case DUMP_MEMORY: {
-            log_debug(logger, "SYSCALL DUMP_MEMORY: PID %d solicita dump de memoria", pid);
+        free(nombre_archivo);
+        break;
+    }
 
-            atender_syscall_dump_memory(pcb, socket_cpu);
-            break;
-        }
+    case DUMP_MEMORY:
+    {
+        log_debug(logger, "SYSCALL DUMP_MEMORY: PID %d solicita dump de memoria", pid);
 
-        case EXIT: {
-            log_debug(logger, "SYSCALL EXIT: Proceso %d finalizando.", pid);
+        atender_syscall_dump_memory(pcb, socket_cpu);
+        break;
+    }
 
-            atender_syscall_exit(pcb, socket_cpu);
-            break;
-        }
+    case EXIT:
+    {
+        log_debug(logger, "SYSCALL EXIT: Proceso %d finalizando.", pid);
 
-        default:
-            log_error(logger, "Syscall desconocida recibida: %d", syscall_id);
-            break;
+        atender_syscall_exit(pcb, socket_cpu);
+        break;
+    }
+
+    default:
+        log_error(logger, "Syscall desconocida recibida: %d", syscall_id);
+        break;
     }
 }
 
-void atender_syscall_io(t_pcb* pcb, char* nombre_io, int tiempo, int socket_cpu) {
-    t_io* dispositivo = buscar_io_por_nombre(nombre_io);
+void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
+{
+    t_io *dispositivo = buscar_io_por_nombre(nombre_io);
 
-    if (dispositivo == NULL) {
+    if (dispositivo == NULL)
+    {
+        log_warning(logger, "IO INEXISTENTE");
         enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
         log_warning(logger, "Proceso %d solicita IO '%s' inexistente. Terminando proceso.", pcb->pid, nombre_io);
         cambiar_estado(pcb, EXIT);
-        finalizar_proceso(pcb); 
+        finalizar_proceso(pcb);
         return;
     }
-    //log_info(logger, "El nombre del dispositivo que se esta atendiendo es %s", dispositivo->nombre);
+    // log_info(logger, "El nombre del dispositivo que se esta atendiendo es %s", dispositivo->nombre);
     cambiar_estado(pcb, BLOCKED);
-    
-    sem_post(&sem_procesos_en_blocked); //Avisamos al planificador de mediano plazo que hay procesos para que pueda planificar
 
-    //log_info(logger, "El proceso %d ahora esta bloqueado por %d segundos", pcb->pid, tiempo);
+    sem_post(&sem_procesos_en_blocked); // Avisamos al planificador de mediano plazo que hay procesos para que pueda planificar
+
+    // log_info(logger, "El proceso %d ahora esta bloqueado por %d segundos", pcb->pid, tiempo);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
-    //log_info(logger, "El proceso %d se desalojo", pcb->pid);
+    // log_info(logger, "El proceso %d se desalojo", pcb->pid);
 
     usar_o_encolar_io(dispositivo, pcb, tiempo);
 }
 
-
-void atender_syscall_init_proc(t_pcb* pcb, char* archivo, int tamanio, int socket_cpu) {
+void atender_syscall_init_proc(t_pcb *pcb, char *archivo, int tamanio, int socket_cpu)
+{
     log_debug(logger, "Proceso %d solicita INIT_PROC para archivo %s, tamaño %d.", pcb->pid, archivo, tamanio);
-    
-    inicializar_proceso(archivo, tamanio); 
+
+    inicializar_proceso(archivo, tamanio);
     enviar_opcode(CONTINUAR_PROCESO, socket_cpu);
 }
 
-
-void atender_syscall_dump_memory(t_pcb* pcb, int socket_cpu) {
+void atender_syscall_dump_memory(t_pcb *pcb, int socket_cpu)
+{
     cambiar_estado(pcb, BLOCKED);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
 
-    if (solicitar_dump_a_memoria(pcb->pid)) {
+    if (solicitar_dump_a_memoria(pcb->pid))
+    {
         log_debug(logger, "Dump de Memoria exitoso para PID %d. Volviendo a READY.", pcb->pid);
         cambiar_estado(pcb, READY);
         sem_post(&sem_procesos_en_ready);
-    } else {
+    }
+    else
+    {
         log_warning(logger, "Dump de Memoria fallido para PID %d. Finalizando proceso.", pcb->pid);
         cambiar_estado(pcb, EXIT_PROCESS);
         finalizar_proceso(pcb);
     }
 }
 
-
-void atender_syscall_exit(t_pcb* pcb, int socket_cpu) {
+void atender_syscall_exit(t_pcb *pcb, int socket_cpu)
+{
     cambiar_estado(pcb, EXIT_PROCESS);
     log_debug(logger, "Se envia al socket %d el desalojo", socket_cpu);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
     finalizar_proceso(pcb);
 }
 
-t_io* buscar_io_por_nombre(char* nombre_io) {
-    for (int i = 0; i < list_size(ios); i++) {
-        t_io* dispositivo = list_get(ios, i);
-        if (strcmp(dispositivo->nombre, nombre_io) == 0) {
+t_io *buscar_io_por_nombre(char *nombre_io)
+{
+    t_io *dispositivo_encontrado = NULL;
+
+    // Busca un dispositivo que tenga nombre_io y esté disponible (asi usamos varias IOs con mismo nombre en simultaneo)
+    for (int i = 0; i < list_size(ios); i++)
+    {
+        t_io *dispositivo = list_get(ios, i);
+        if (strcmp(dispositivo->nombre, nombre_io) == 0 && dispositivo->disponible)
+        {
+            dispositivo_encontrado = dispositivo;
+        }
+    }
+    // Sino, busca el primero que matchee con el nombre_io (para encolar)
+    if (dispositivo_encontrado == NULL)
+    {
+        for (int i = 0; i < list_size(ios); i++)
+        {
+            t_io *dispositivo = list_get(ios, i);
+            if (strcmp(dispositivo->nombre, nombre_io) == 0)
+            {
+                dispositivo_encontrado = dispositivo;
+            }
+        }
+    }
+
+    return dispositivo_encontrado;
+}
+
+int buscar_index_io_por_socket(int socket)
+{
+    for (int i = 0; i < list_size(ios); i++)
+    {
+        t_io *dispositivo = list_get(ios, i);
+        if (dispositivo->socket == socket)
+        {
+            return i;
+        }
+    }
+    return NULL;
+}
+
+t_io *buscar_io_por_socket(int socket)
+{
+    for (int i = 0; i < list_size(ios); i++)
+    {
+        t_io *dispositivo = list_get(ios, i);
+        if (dispositivo->socket == socket)
+        {
             return dispositivo;
         }
     }
     return NULL;
 }
 
-t_io* buscar_io_por_socket(int socket) {
-    for (int i = 0; i < list_size(ios); i++) {
-        t_io* dispositivo = list_get(ios, i);
-        if (dispositivo->socket == socket) {
-            return dispositivo;
-        }
-    }
-    return NULL;
-}
+void usar_o_encolar_io(t_io *dispositivo, t_pcb *pcb, int tiempo)
+{
 
-
-void usar_o_encolar_io(t_io* dispositivo, t_pcb* pcb, int tiempo) {
-    
-    if (dispositivo->disponible) {
+    if (dispositivo->disponible)
+    {
 
         dispositivo->disponible = false;
         dispositivo->pid_actual = pcb->pid;
-        
+
         log_debug(logger, "Proceso %d usando IO %s inmediatamente.", pcb->pid, dispositivo->nombre);
 
         // Enviar al modulo IO el PID y el tiempo
         enviar_opcode(SOLICITUD_IO, dispositivo->socket);
-        t_paquete* paquete = crear_paquete();
+        t_paquete *paquete = crear_paquete();
         agregar_int_a_paquete(paquete, pcb->pid);
-        agregar_int_a_paquete(paquete, tiempo);  
+        agregar_int_a_paquete(paquete, tiempo);
         enviar_paquete(paquete, dispositivo->socket);
         eliminar_paquete(paquete);
-
-    } else {
+    }
+    else
+    {
         pcb->tiempoIO = tiempo;
         queue_push(dispositivo->cola_procesos, pcb);
         log_debug(logger, "Proceso %d encolado esperando IO %s.", pcb->pid, dispositivo->nombre);
     }
 }
 
-void finalizar_proceso(t_pcb* pcb) {
+void finalizar_proceso(t_pcb *pcb)
+{
     log_info(logger, "## (%i) - Finaliza el proceso", pcb->pid);
 
-    if (!liberar_en_memoria(pcb->pid)) {
+    if (!liberar_en_memoria(pcb->pid))
+    {
         log_error(logger, "Error liberando memoria para PID %d", pcb->pid);
     }
 
     loguear_metricas_estado(pcb);
-    
+
     remover_pcb(pcb);
-    
-    
+
     sem_post(&sem_procesos_que_van_a_ready); // OJO CON ESTO, NO ME TENGO QUE OLVIDAR DE QUE PRIMERO VAN LOS SUSPREADY
     sem_post(&sem_procesos_en_new);
-
 }
 
-
-void loguear_metricas_estado(t_pcb* pcb) {
+void loguear_metricas_estado(t_pcb *pcb)
+{
     log_info(logger, "## (%i) - Metricas del proceso", pcb->pid);
-    
-    for (int i = 0; i < list_size(pcb->metricas); i++) {
-        t_metricas_estado* metrica = list_get(pcb->metricas, i);
+
+    for (int i = 0; i < list_size(pcb->metricas); i++)
+    {
+        t_metricas_estado *metrica = list_get(pcb->metricas, i);
         log_info(logger, "## Estado: %s | Veces: %d | Tiempo total: %" PRIu64 " ms",
                  nombre_estado(metrica->estado),
                  metrica->cantVeces,
@@ -198,7 +248,8 @@ void loguear_metricas_estado(t_pcb* pcb) {
     }
 }
 
-void remover_pcb(t_pcb* pcb) {
+void remover_pcb(t_pcb *pcb)
+{
     pthread_mutex_lock(&mutex_pcbs);
     list_remove_element(pcbs, pcb);
     pthread_mutex_unlock(&mutex_pcbs);

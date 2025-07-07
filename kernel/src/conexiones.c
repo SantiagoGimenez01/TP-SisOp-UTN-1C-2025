@@ -132,8 +132,7 @@ void operarDispatch(int socket_cliente)
             log_debug(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
             marcar_cpu_como_libre(socket_cliente, true);
             sem_post(&sem_corto_plazo);
-
-            // sem_post(&sem_cpu_disponible);
+            sem_post(&sem_cpu_disponible);
             break;
 
         default:
@@ -176,7 +175,6 @@ void operarInterrupt(int socket_cliente)
             memcpy(&timer_exec, paquete->buffer->stream + sizeof(uint32_t) + sizeof(uint32_t), sizeof(uint32_t));
 
             eliminar_paquete(paquete);
-
 
             t_pcb *pcb = buscar_pcb_por_pid(pid);
             if (pcb == NULL)
@@ -229,7 +227,31 @@ void operarIo(int socket_cliente)
         int recv_bytes = recv(socket_cliente, &op, sizeof(op), MSG_WAITALL);
         if (recv_bytes <= 0)
         {
-            log_warning(logger, "Desconexion de IO (socket %d)", socket_cliente);
+            log_warning(logger, "Desconexion de IO (socket %d). Eliminando de lista IOs", socket_cliente);
+            t_io *dispositivo = buscar_io_por_socket(socket_cliente);
+            // Finalizo el proceso que estaba usando IO
+            t_pcb *pcb = buscar_pcb_por_pid(dispositivo->pid_actual);
+            if (pcb)
+            {
+                log_debug(logger, "Finalizando proceso en IO %d", dispositivo->pid_actual);
+                pthread_mutex_lock(&pcb->mutex_pcb);
+                cambiar_estado(pcb, EXIT_PROCESS);
+                finalizar_proceso(pcb);
+                pthread_mutex_unlock(&pcb->mutex_pcb);
+            }
+            // Finalizo los que estaban encolados
+            while (!queue_is_empty(dispositivo->cola_procesos))
+            {
+                t_pcb *pcb_siguiente = queue_pop(dispositivo->cola_procesos);
+                log_debug(logger, "Finalizando proceso encolado %d", pcb_siguiente->pid);
+                pthread_mutex_lock(&pcb_siguiente->mutex_pcb);
+                cambiar_estado(pcb_siguiente, EXIT_PROCESS);
+                finalizar_proceso(pcb_siguiente);
+                pthread_mutex_unlock(&pcb_siguiente->mutex_pcb);
+            }
+
+            int index_dispositivo = buscar_index_io_por_socket(socket_cliente);
+            list_remove_and_destroy_element(ios, index_dispositivo, free);
             break;
         }
 
