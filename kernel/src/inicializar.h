@@ -32,6 +32,7 @@ extern sem_t sem_procesos_que_van_a_ready;
 
 extern sem_t respuesta_estimacion;
 
+extern pthread_mutex_t mutex_agregar_cpu;
 extern pthread_mutex_t mutex_new;
 extern pthread_mutex_t mutex_ready;
 extern pthread_mutex_t mutex_blocked;
