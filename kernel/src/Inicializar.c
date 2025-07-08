@@ -27,7 +27,7 @@ pthread_mutex_t mutex_exit;
 pthread_mutex_t mutex_susp_ready;
 pthread_mutex_t mutex_susp_blocked;
 
-pthread_mutex_t mutex_agregar_cpu;
+sem_t sem_agregar_cpu;
 
 sem_t sem_cpu_disponible;
 sem_t sem_corto_plazo;
@@ -53,8 +53,8 @@ void inicializarEstados()
 
     sem_init(&sem_cpu_disponible, 0, 0);
     sem_init(&sem_corto_plazo, 0, 0);
+    sem_init(&sem_agregar_cpu, 0, 0);
 
-    pthread_mutex_init(&mutex_agregar_cpu, NULL);
     pthread_mutex_init(&mutex_new, NULL);
     pthread_mutex_init(&mutex_ready, NULL);
     pthread_mutex_init(&mutex_exit, NULL);

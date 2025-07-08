@@ -37,7 +37,7 @@ void *escuchar_dispatch(void *socket_servidor_void)
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
         comprobacionModulo(modulo_origen, MODULO_CPU_DISPATCH, "CPU_DISPATCH", operarDispatch, socket_cliente);
-        pthread_mutex_unlock(&mutex_agregar_cpu);
+        sem_post(&sem_agregar_cpu);
     }
     return NULL;
 }
@@ -49,7 +49,7 @@ void *escuchar_interrupt(void *socket_servidor_void)
 
     while (1)
     {
-        pthread_mutex_unlock(&mutex_agregar_cpu);
+        sem_wait(&sem_agregar_cpu);
         int socket_cliente = esperarCliente(socket_servidor, logger);
         int id_cpu;
         recv(socket_cliente, &id_cpu, sizeof(int), 0);
