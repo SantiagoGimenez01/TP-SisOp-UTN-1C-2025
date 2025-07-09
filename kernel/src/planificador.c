@@ -123,9 +123,16 @@ t_cpu *obtener_cpu_con_proc_mas_largo()
     // log_info(logger, "ENtre");
     for (int i = 1; i < list_size(cpus); i++)
     {
-        t_cpu *cpu_menor = list_get(cpus, i);
-        if (cpu->pcb_exec->timer_exec < cpu_menor->pcb_exec->timer_exec)
-            cpu = cpu_menor;
+        t_cpu *cpu_mayor = list_get(cpus, i);
+        uint64_t ahora = get_timestamp();
+        uint64_t tiempo_ejecucion_mayor = ahora - cpu_mayor->pcb_exec->momento_entrada_estado;
+        uint64_t estimacion_restante_mayor = cpu_mayor->pcb_exec->estimacion_rafaga - tiempo_ejecucion_mayor;
+
+        uint64_t tiempo_ejecucion = ahora - cpu->pcb_exec->momento_entrada_estado;
+        uint64_t estimacion_restante = cpu->pcb_exec->estimacion_rafaga - tiempo_ejecucion;
+
+        if (estimacion_restante_mayor > estimacion_restante)
+            cpu = cpu_mayor;
     }
     pthread_mutex_unlock(&mutex_cpus);
     return cpu;

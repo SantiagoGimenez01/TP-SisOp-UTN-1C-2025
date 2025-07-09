@@ -165,7 +165,9 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
 
     if ((pcb->estado_actual == BLOCKED || pcb->estado_actual == SUSP_READY) && nuevo_estado == READY && strcmp(configKERNEL.algoritmo_planificacion, "FIFO") != 0)
     {
-        pcb->estimacion_rafaga = calcularEstimacion(pcb);
+        uint32_t nueva_estimacion = calcularEstimacion(pcb);
+        pcb->rafaga_anterior = pcb->estimacion_rafaga;
+        pcb->estimacion_rafaga = nueva_estimacion;
         log_debug(logger, "Nueva estimacion actual de %d: %dms", pcb->pid, pcb->estimacion_rafaga);
     }
     // Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta
