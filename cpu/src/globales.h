@@ -18,7 +18,6 @@ extern int cantidad_niveles;
 extern pthread_mutex_t mutex_flag_desalojo;
 extern bool flag_desalojo;
 
-extern t_list *cache_paginas;
 typedef struct
 {
     t_instruccion_id id;
