@@ -139,33 +139,30 @@ void liberar_marcos_de_proceso(t_tabla_nivel *tabla, int nivel_actual)
 {
     for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++)
     {
-        if (nivel_actual == configMEMORIA.cantidad_niveles)
-        {
-            t_entrada_pagina *entrada = tabla->entradas[i];
-            if (!entrada)
-                continue;
+        void* entrada = tabla->entradas[i];
 
-            if (entrada->presencia && entrada->marco >= 0 && entrada->marco < cantidad_frames)
+        if (!entrada) continue;
+
+        if (nivel_actual == configMEMORIA.cantidad_niveles) {
+            t_entrada_pagina *pagina = (t_entrada_pagina *) entrada;
+
+            if (pagina->presencia && pagina->marco >= 0 && pagina->marco < cantidad_frames)
             {
-                log_trace(logger, "Liberando marco %d (presente: %d)", entrada->marco, entrada->presencia);
-                bitarray_clean_bit(bitmap_frames, entrada->marco);
-                log_trace(logger, "Bit limpio correctamente en marco %d", entrada->marco);
-            }
-            else
-            {
-                log_error(logger, "Error: marco invalido %d", entrada->marco);
+                log_trace(logger, "Liberando marco %d (presente: %d)", pagina->marco, pagina->presencia);
+                bitarray_clean_bit(bitmap_frames, pagina->marco);
+                log_trace(logger, "Bit limpio correctamente en marco %d", pagina->marco);
             }
 
-            free(entrada);
-        }
+            free(pagina);
+        } 
         else
         {
-            if (tabla->entradas[i])
-                liberar_marcos_de_proceso((t_tabla_nivel *)tabla->entradas[i], nivel_actual + 1);
+            liberar_marcos_de_proceso((t_tabla_nivel *)entrada, nivel_actual + 1);
+
         }
     }
-    free(tabla->entradas);
-    free(tabla);
+    free(tabla->entradas);  
+    free(tabla);            
 }
 
 void liberar_proceso_en_memoria(t_proceso_en_memoria *proceso)
@@ -176,7 +173,6 @@ void liberar_proceso_en_memoria(t_proceso_en_memoria *proceso)
     log_trace(logger, "Proceso %d removido de lista: %s", proceso->pid, eliminado ? "sí" : "no");
 
     free(proceso->nombre_archivo);
-    list_remove_element(procesos_en_memoria, proceso); // elimina de la lista global
     free(proceso);
     for (int i = 0; i < cantidad_frames; i++)
     {

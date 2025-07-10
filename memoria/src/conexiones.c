@@ -162,6 +162,11 @@ void operarKernel(int socket_cliente)
 
         suspender_proceso(proceso);
 
+        log_trace(logger, "Estado del bitmap de frames tras suspender PID %d:", pid);
+        for (int i = 0; i < cantidad_frames; i++) {
+            log_trace(logger, "Frame %d: %d", i, bitarray_test_bit(bitmap_frames, i));
+        }
+
         int ok = RESPUESTA_OK;
         send(socket_cliente, &ok, sizeof(int), 0);
         log_debug(logger, "Memoria: PID %d suspendido correctamente", pid);
@@ -228,6 +233,13 @@ void operarKernel(int socket_cliente)
         int ok = RESPUESTA_OK;
         send(socket_cliente, &ok, sizeof(int), 0);
         log_debug(logger, "Memoria: PID %d finalizado correctamente", pid);
+
+        int ocupados = 0;
+        for (int i = 0; i < cantidad_frames; i++) {
+            if (bitarray_test_bit(bitmap_frames, i))
+                ocupados++;
+        }
+        log_debug(logger, "Cantidad de marcos ocupados tras liberar: %d", ocupados);
         break;
     }
 

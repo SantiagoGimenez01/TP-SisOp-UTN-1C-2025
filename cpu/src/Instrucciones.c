@@ -368,7 +368,8 @@ char *nombre_parametros(t_instruccion *inst)
     char *string_parametros = string_new();
     for (int i = 0; i < inst->cantidad_parametros; i++)
     {
-        string_append(&string_parametros, ", ");
+        if (i > 0)
+            string_append(&string_parametros, ", ");
         string_append(&string_parametros, inst->parametros[i]);
     }
     return string_parametros;

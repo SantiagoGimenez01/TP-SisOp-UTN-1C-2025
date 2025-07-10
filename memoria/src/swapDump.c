@@ -124,6 +124,7 @@ void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_
 
                 bitarray_clean_bit(bitmap_frames, entrada->marco);
                 entrada->presencia = false;
+                entrada->marco = -1;
 
                 proceso->metricas.bajadas_a_swap++;
             }
