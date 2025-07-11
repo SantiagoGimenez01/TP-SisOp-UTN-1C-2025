@@ -293,15 +293,8 @@ void operarIo(int socket_cliente)
                 }
                 else
                 {
-                    bool resultado = solicitar_desuspender_proceso(pcb->pid);
-
-                    if (resultado)
-                    {
-                        cambiar_estado(pcb, SUSP_READY); // Pasamos el proceso a SUSP_READY
-                        sem_post(&sem_procesos_en_suspReady);
-                    }
-                    else
-                        log_error(logger, "##(%d) No se desuspendio correctamente", pcb->pid);
+                    cambiar_estado(pcb, SUSP_READY); // Pasamos el proceso a SUSP_READY
+                    sem_post(&sem_procesos_en_suspReady);
                 }
                 pcb->tiempoIO = -1;
                 pthread_mutex_unlock(&pcb->mutex_pcb);

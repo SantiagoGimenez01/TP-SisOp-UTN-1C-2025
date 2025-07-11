@@ -212,8 +212,15 @@ void *planificador_largo_plazo(void *arg)
 
         if (!siguiente)
             continue;
+    
+        bool aceptado;
+        
+        //Si viene de NEW crea el proceso (INIT_PROC) y si viene de SUSP_READY desuspende el proceso (DESUSPENDER)
+        if(siguiente->estado_actual == SUSP_READY)
+            aceptado = solicitar_desuspender_proceso(siguiente->pid);
+        else if (siguiente->estado_actual == NEW)
+            aceptado = solicitar_espacio_a_memoria(siguiente);
 
-        bool aceptado = solicitar_espacio_a_memoria(siguiente);
         // log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
         if (aceptado)
         {
