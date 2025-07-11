@@ -12,7 +12,8 @@
 #include "utils/structs.h"     
 #include "componentes.h"  
 
-
+bool check_interrupt();
+void enviar_estado_proc_kernel(uint32_t pid, uint32_t pc);
 
 // Ciclo completo de instrucciones
 bool ejecutar_ciclo(uint32_t pid, uint32_t pc);
