@@ -79,7 +79,7 @@ void suspender_proceso(t_proceso_en_memoria* proceso) {
 
     log_debug(logger, "Iniciando suspension de PID %d", proceso->pid);
 
-    suspender_paginas_recursivamente(proceso->tabla_nivel_1, 1, proceso, swap);
+    suspender_paginas_recursivamente(proceso->tabla_nivel_1, 1, proceso, swap, 0);
 
     fclose(swap);
 
@@ -87,12 +87,15 @@ void suspender_proceso(t_proceso_en_memoria* proceso) {
     log_debug(logger, "Proceso %d suspendido correctamente", proceso->pid);
 }
 
-void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_proceso_en_memoria* proceso, FILE* swap) {
+void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_proceso_en_memoria* proceso, FILE* swap, int base_logica) {
     for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++) {
         if (!tabla || !tabla->entradas[i]) {
             log_trace(logger, "Entrada NULL en nivel %d, indice %d", nivel_actual, i);
             continue;
         }
+
+        // Cálculo de número de página lógica global
+        int nro_pagina = base_logica + i * pow(configMEMORIA.entradas_por_tabla, configMEMORIA.cantidad_niveles - nivel_actual);
 
         if (nivel_actual == configMEMORIA.cantidad_niveles) {
             t_entrada_pagina* entrada = tabla->entradas[i];
@@ -112,13 +115,13 @@ void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_
                 int offset = slot * configMEMORIA.tam_pagina;
                 void* origen = memoria_fisica + (entrada->marco * configMEMORIA.tam_pagina);
 
-                log_trace(logger, "Copiando página %d del PID %d al slot %d (offset %d)", i, proceso->pid, slot, offset);
+                log_trace(logger, "Copiando página %d del PID %d al slot %d (offset %d)", nro_pagina, proceso->pid, slot, offset);
                 fseek(swap, offset, SEEK_SET);
                 fwrite(origen, 1, configMEMORIA.tam_pagina, swap);
 
                 t_registro_swap* reg = malloc(sizeof(t_registro_swap));
                 reg->pid = proceso->pid;
-                reg->nro_pagina = i;
+                reg->nro_pagina = nro_pagina;
                 reg->slot = slot;
                 list_add(paginas_en_swap, reg);
 
@@ -130,10 +133,11 @@ void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_
             }
 
         } else {
-            suspender_paginas_recursivamente((t_tabla_nivel*) tabla->entradas[i], nivel_actual + 1, proceso, swap);
+            suspender_paginas_recursivamente((t_tabla_nivel*) tabla->entradas[i], nivel_actual + 1, proceso, swap, nro_pagina);
         }
     }
 }
+
 
 
 
@@ -165,7 +169,11 @@ int desuspender_proceso(t_proceso_en_memoria* proceso) {
         t_registro_swap* r = list_get(paginas_en_swap, i);
 
         if (r->pid == proceso->pid) {
+            
             int marco = buscar_frame_libre();
+            log_trace(logger, "Restaurando página %d del PID %d desde slot %d al marco %d",
+          r->nro_pagina, r->pid, r->slot, marco);
+
             int offset = r->slot * configMEMORIA.tam_pagina;
 
             void* destino = memoria_fisica + (marco * configMEMORIA.tam_pagina);
@@ -180,6 +188,9 @@ int desuspender_proceso(t_proceso_en_memoria* proceso) {
 
             proceso->metricas.subidas_de_swap++;
             
+            log_trace(logger, "Entrada actualizada: nro_pagina=%d marco=%d presencia=%d",
+          r->nro_pagina, entrada->marco, entrada->presencia);
+
             list_remove_and_destroy_element(paginas_en_swap, i, free);
         } else {
             i++;
@@ -188,6 +199,9 @@ int desuspender_proceso(t_proceso_en_memoria* proceso) {
 
     fclose(swap);
     usleep(configMEMORIA.retardo_swap * 1000);
+    log_trace(logger, "PID %d - Total de páginas restauradas desde swap: %d",
+          proceso->pid, paginas_a_cargar);
+
     return 0;
 }
 
@@ -203,6 +217,9 @@ t_entrada_pagina* buscar_entrada_pagina(t_tabla_nivel* tabla, int nro_pagina) {
     }
 
     int offset = nro_pagina % entradas;
+    log_trace(logger, "Buscar entrada: - Página %d encontrada en nivel final. Retorna marco actual: %d",
+           nro_pagina, ((t_entrada_pagina*) actual->entradas[offset])->marco);
+
     return (t_entrada_pagina*) actual->entradas[offset];
 }
 

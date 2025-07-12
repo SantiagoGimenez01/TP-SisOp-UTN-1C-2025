@@ -146,6 +146,9 @@ void liberar_marcos_de_proceso(t_tabla_nivel *tabla, int nivel_actual)
         if (nivel_actual == configMEMORIA.cantidad_niveles) {
             t_entrada_pagina *pagina = (t_entrada_pagina *) entrada;
 
+            log_trace(logger, "Finalizando: Página %d - Marco: %d - Presente: %d",
+                      i, pagina->marco, pagina->presencia);
+
             if (pagina->presencia && pagina->marco >= 0 && pagina->marco < cantidad_frames)
             {
                 log_trace(logger, "Liberando marco %d (presente: %d)", pagina->marco, pagina->presencia);

@@ -10,7 +10,8 @@ void escribir_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, FIL
 
 // Swap
 void suspender_proceso(t_proceso_en_memoria* proceso);
-void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_proceso_en_memoria* proceso, FILE* swap);
+void suspender_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, t_proceso_en_memoria* proceso, FILE* swap, int base_logica);
+
 
 int desuspender_proceso(t_proceso_en_memoria* proceso);
 int contar_paginas_en_swap(int pid);
