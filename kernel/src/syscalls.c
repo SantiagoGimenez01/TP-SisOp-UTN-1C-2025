@@ -91,8 +91,6 @@ void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
     // log_info(logger, "El nombre del dispositivo que se esta atendiendo es %s", dispositivo->nombre);
     cambiar_estado(pcb, BLOCKED);
 
-    sem_post(&sem_procesos_en_blocked); // Avisamos al planificador de mediano plazo que hay procesos para que pueda planificar
-
     // log_info(logger, "El proceso %d ahora esta bloqueado por %d segundos", pcb->pid, tiempo);
     enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
     // log_info(logger, "El proceso %d se desalojo", pcb->pid);

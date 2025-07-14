@@ -294,7 +294,6 @@ void operarIo(int socket_cliente)
                 else
                 {
                     cambiar_estado(pcb, SUSP_READY); // Pasamos el proceso a SUSP_READY
-                    sem_post(&sem_procesos_en_suspReady);
                 }
                 pcb->tiempoIO = -1;
                 pthread_mutex_unlock(&pcb->mutex_pcb);

@@ -32,9 +32,10 @@ t_pcb *obtener_siguiente_de_new()
     }
     else if (strcmp(configKERNEL.algoritmo_cola_new, "PMCP") == 0)
     {
-        int indexMasChico = 0;                                    // El proceso mas chico comienza siendo el 1ro de la lista
-        obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
-        candidato = list_get(cola_new, indexMasChico);            // Seleccionamos el mas chico y lo sacamos de new
+        //int indexMasChico = 0;                                    // El proceso mas chico comienza siendo el 1ro de la lista
+        //obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
+        list_sort(cola_new, procesoMasChico); //Ordena los procesos de forma ascendente
+        candidato = list_get(cola_new, 0);  // Seleccionamos el primero luego del sort (O sea el mas chico)
     }
     else
     {
@@ -45,16 +46,22 @@ t_pcb *obtener_siguiente_de_new()
     return candidato;
 }
 
-void obtenerIndiceDeProcesoMasChico(t_list *cola_new, int *indexMasChico)
-{
-    for (int i = 1; i < list_size(cola_new); i++)
-    {
-        t_pcb *actual = list_get(cola_new, i);
-        t_pcb *menor_actual = list_get(cola_new, *indexMasChico);
-        if (actual->tamanio < menor_actual->tamanio)
-            *indexMasChico = i;
-    }
+bool procesoMasChico(void* a, void* b) {
+    t_pcb* proceso_a = (t_pcb*) a;
+    t_pcb* proceso_b = (t_pcb*) b;
+    return proceso_a->tamanio <= proceso_b->tamanio;
 }
+
+// void obtenerIndiceDeProcesoMasChico(t_list *cola_new, int *indexMasChico)
+// {
+//     for (int i = 1; i < list_size(cola_new); i++)
+//     {
+//         t_pcb *actual = list_get(cola_new, i);
+//         t_pcb *menor_actual = list_get(cola_new, *indexMasChico);
+//         if (actual->tamanio < menor_actual->tamanio)
+//             *indexMasChico = i;
+//     }
+// }
 
 t_pcb *obtener_siguiente_de_ready()
 {
@@ -172,13 +179,14 @@ t_pcb *obtener_siguiente_de_suspReady()
     // log_info(logger, "Encontro un proceso en susp ready");
     if (strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0)
     {
-        proceso = list_remove(cola_susp_ready, 0); // Debate que tengo
+        proceso = list_get(cola_susp_ready, 0); // Debate que tengo
     }
     else
     {
-        int indexMasChico = 0;                                           // El proceso mas chico comienza siendo el 1ro de la lista
-        obtenerIndiceDeProcesoMasChico(cola_susp_ready, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
-        proceso = list_remove(cola_susp_ready, indexMasChico);           // Seleccionamos el mas chico y lo sacamos de new
+        //int indexMasChico = 0;                                           // El proceso mas chico comienza siendo el 1ro de la lista
+        //obtenerIndiceDeProcesoMasChico(cola_susp_ready, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
+        list_sort(cola_susp_ready, procesoMasChico); //Ordena los procesos de forma ascendente
+        proceso = list_get(cola_susp_ready, 0);           // Seleccionamos el mas chico y lo sacamos de new
     }
 
     pthread_mutex_unlock(&mutex_susp_ready);
@@ -200,13 +208,11 @@ void *planificador_largo_plazo(void *arg)
         if (list_is_empty(cola_susp_ready))
         {
             sem_wait(&sem_procesos_en_new);
-            // log_info(logger, "Entro al if por new");
             siguiente = obtener_siguiente_de_new();
         }
         else
         {
             sem_wait(&sem_procesos_en_suspReady);
-            // log_info(logger, "Entro al if por susp ready");
             siguiente = obtener_siguiente_de_suspReady();
         }
 
@@ -225,7 +231,12 @@ void *planificador_largo_plazo(void *arg)
         if (aceptado)
         {
             pthread_mutex_lock(&mutex_new);
-            list_remove_element(cola_new, siguiente);
+        //Si el proceso se elimina de la lista de su estado actual ya que pasa a ready
+            if(siguiente->estado_actual == NEW)
+                list_remove_element(cola_new, siguiente);
+            else
+                list_remove_element(cola_susp_ready, siguiente);
+
             pthread_mutex_unlock(&mutex_new);
             cambiar_estado(siguiente, READY);
             // pthread_mutex_lock(&mutex_ready);

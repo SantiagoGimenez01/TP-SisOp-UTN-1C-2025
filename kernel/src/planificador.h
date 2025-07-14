@@ -30,8 +30,9 @@ t_pcb* obtener_siguiente_de_suspReady();
 t_pcb* obtener_siguiente_de_blocked();
 t_cpu* obtener_cpu_libre();
 void enviar_proceso(t_cpu* cpu, t_pcb* pcb);
-void obtenerIndiceDeProcesoMasChico(t_list* cola_new, int* indexMasChico);
+//void obtenerIndiceDeProcesoMasChico(t_list* cola_new, int* indexMasChico);
 void obtenerIndiceDeProcesoMasCorto(t_list* cola_ready, int* indexMasCorto);
 void* timer_bloqueo(void* arg);
 bool hayDesalojo();
+bool procesoMasChico(void* a, void* b);
 #endif
