@@ -7,4 +7,5 @@ void cargarConfiguracionKernel(char* path, config_kernel_t* configKernel, t_log*
     cpus_incompletas = list_create();
     cpus = list_create();
     ios = list_create();
+    config_destroy(config);
 }

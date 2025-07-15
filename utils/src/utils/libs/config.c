@@ -43,13 +43,13 @@ config_kernel_t load_config_kernel(t_config* config) {
     check_null_config(config);
     config_kernel_t configKernel;
 
-    configKernel.ip_memoria = config_get_string_value(config, "IP_MEMORIA");
+    configKernel.ip_memoria = strdup(config_get_string_value(config, "IP_MEMORIA"));
     configKernel.puerto_memoria = config_get_int_value(config, "PUERTO_MEMORIA");
     configKernel.puerto_escucha_dispatch = config_get_int_value(config, "PUERTO_ESCUCHA_DISPATCH");
     configKernel.puerto_escucha_interrupt = config_get_int_value(config, "PUERTO_ESCUCHA_INTERRUPT");
     configKernel.puerto_escucha_io = config_get_int_value(config, "PUERTO_ESCUCHA_IO");
-    configKernel.algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
-    configKernel.algoritmo_cola_new = config_get_string_value(config, "ALGORITMO_COLA_NEW");
+    configKernel.algoritmo_planificacion = strdup(config_get_string_value(config, "ALGORITMO_PLANIFICACION"));
+    configKernel.algoritmo_cola_new = strdup(config_get_string_value(config, "ALGORITMO_COLA_NEW"));
     configKernel.alfa = config_get_double_value(config, "ALFA");  // o config_get_string_value y parsear a double si falla
     configKernel.estimacion_inicial = config_get_int_value(config, "ESTIMACION_INICIAL");
     configKernel.tiempo_suspension = config_get_int_value(config, "TIEMPO_SUSPENSION");
