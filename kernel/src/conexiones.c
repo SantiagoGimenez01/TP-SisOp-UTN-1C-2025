@@ -84,11 +84,20 @@ void *escuchar_io(void *socket_servidor_void)
 // --- Funcion principal ---
 
 void establecerConexiones()
-{
+{   
+    //Puertos
+    char* puerto_dispatch = string_itoa(configKERNEL.puerto_escucha_dispatch);
+    char* puerto_interrupt = string_itoa(configKERNEL.puerto_escucha_interrupt);
+    char* puerto_io = string_itoa(configKERNEL.puerto_escucha_io);
+
     // Iniciar 3 servidores TCP (en teoria como entendi deberia ser asi...)
-    int socket_dispatch = iniciarServidor(string_itoa(configKERNEL.puerto_escucha_dispatch), logger, "KERNEL_DISPATCH");
-    int socket_interrupt = iniciarServidor(string_itoa(configKERNEL.puerto_escucha_interrupt), logger, "KERNEL_INTERRUPT");
-    int socket_io = iniciarServidor(string_itoa(configKERNEL.puerto_escucha_io), logger, "KERNEL_IO");
+    int socket_dispatch = iniciarServidor(puerto_dispatch, logger, "KERNEL_DISPATCH");
+    int socket_interrupt = iniciarServidor(puerto_interrupt, logger, "KERNEL_INTERRUPT");
+    int socket_io = iniciarServidor(puerto_io, logger, "KERNEL_IO");
+
+    free(puerto_dispatch);
+    free(puerto_interrupt);
+    free(puerto_io);
 
     // Crear 3 hilos para escuchar en paralelo
     pthread_t hilo_dispatch, hilo_interrupt, hilo_io;
