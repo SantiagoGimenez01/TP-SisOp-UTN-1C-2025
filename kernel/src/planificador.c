@@ -213,7 +213,7 @@ t_pcb *obtener_siguiente_de_suspReady()
         return NULL;
     }
 
-    log_trace(logger, "[SUSP_READY] Cantidad de procesos en NEW: %d", list_size(cola_new));
+    log_trace(logger, "[SUSP_READY] Cantidad de procesos en SUSP_READY: %d", list_size(cola_susp_ready));
     for (int i = 0; i < list_size(cola_susp_ready); i++) {
         t_pcb *p = list_get(cola_susp_ready, i);
         log_trace(logger, "[SUSP_READY] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
