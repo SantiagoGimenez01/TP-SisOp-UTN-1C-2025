@@ -239,6 +239,7 @@ void remover_de_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_susp_ready);
         list_remove_element(cola_susp_ready, pcb);
         pthread_mutex_unlock(&mutex_susp_ready);
+        sem_post(&sem_procesos_en_suspReady);
         break;
     case SUSP_BLOCKED:
         pthread_mutex_lock(&mutex_susp_blocked);
@@ -276,6 +277,7 @@ void agregar_a_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_blocked);
         list_add(cola_blocked, pcb);
         pthread_mutex_unlock(&mutex_blocked);
+        sem_post(&sem_procesos_en_blocked); // Avisamos al planificador de mediano plazo que hay procesos para que pueda planificar
         break;
     case SUSP_READY:
         pthread_mutex_lock(&mutex_susp_ready);
