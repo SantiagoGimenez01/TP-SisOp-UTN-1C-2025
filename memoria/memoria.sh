@@ -62,6 +62,3 @@ else
 fi
 
 make
-
-bin/memoria
-
