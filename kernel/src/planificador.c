@@ -273,14 +273,20 @@ void *planificador_largo_plazo(void *arg)
         // log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
         if (aceptado)
         {
-            pthread_mutex_lock(&mutex_new);
+            
         //Si el proceso se elimina de la lista de su estado actual ya que pasa a ready
-            if(siguiente->estado_actual == NEW)
+            if(siguiente->estado_actual == NEW){
+                pthread_mutex_lock(&mutex_new);
                 list_remove_element(cola_new, siguiente);
-            else
+                pthread_mutex_unlock(&mutex_new);
+            }
+                
+            else{
+                pthread_mutex_lock(&mutex_susp_ready);
                 list_remove_element(cola_susp_ready, siguiente);
-
-            pthread_mutex_unlock(&mutex_new);
+                pthread_mutex_unlock(&mutex_susp_ready);
+            }
+                
             cambiar_estado(siguiente, READY);
             // pthread_mutex_lock(&mutex_ready);
             // list_add(cola_ready, siguiente);
