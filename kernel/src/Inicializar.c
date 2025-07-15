@@ -34,6 +34,8 @@ sem_t sem_corto_plazo;
 
 pthread_mutex_t mutex_cpus = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_pcbs;
+pthread_mutex_t mutex_ios;
+
 
 void inicializarEstados()
 {
@@ -62,6 +64,8 @@ void inicializarEstados()
     pthread_mutex_init(&mutex_susp_blocked, NULL);
     pthread_mutex_init(&mutex_blocked, NULL);
     pthread_mutex_init(&mutex_pcbs, NULL);
+    pthread_mutex_init(&mutex_ios, NULL);
+
 }
 
 void agregarNuevaCpuInc(int socket_cliente, int id_cpu)
@@ -116,7 +120,7 @@ void agregarNuevaIo(char *nombre, int socket_cliente)
     nueva_io->socket = socket_cliente;
     nueva_io->disponible = true;
     nueva_io->cola_procesos = queue_create();
-
+    pthread_mutex_init(&nueva_io->mutex, NULL);
     list_add(ios, nueva_io);
 
     log_debug(logger, "Se agrego IO '%s' al sistema.", nombre);
@@ -401,8 +405,10 @@ void marcar_cpu_como_libre(int socket_cliente, bool es_socket_dispatch)
     {
         cpu = obtener_cpu_por_socket_interrupt(socket_cliente);
     }
+    pthread_mutex_lock(&mutex_cpus);
     cpu->disponible = true;
     cpu->pcb_exec = NULL;
+    pthread_mutex_unlock(&mutex_cpus);
     log_debug(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_cliente);
     sem_post(&sem_cpu_disponible);
 }

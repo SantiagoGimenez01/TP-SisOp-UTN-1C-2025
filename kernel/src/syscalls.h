@@ -14,8 +14,8 @@ void atender_syscall_io(t_pcb* pcb, char* nombre_io, int tiempo, int socket_cpu)
 void atender_syscall_init_proc(t_pcb* pcb, char* archivo, int tamanio, int socket_cpu);
 void atender_syscall_dump_memory(t_pcb* pcb, int socket_cpu);
 void atender_syscall_exit(t_pcb* pcb, int socket_cpu);
-t_io* buscar_io_por_nombre(char* nombre_io);
-void usar_o_encolar_io(t_io* dispositivo, t_pcb* pcb, int tiempo);
+t_io *buscar_io_menos_cargado_por_nombre(char *nombre_io);
+void usar_o_encolar_io(t_io* dispositivo, t_pcb* pcb, int tiempo, int socket_cpu);
 void finalizar_proceso(t_pcb* pcb);
 bool liberar_en_memoria(uint32_t pid);
 void remover_pcb(t_pcb* pcb);

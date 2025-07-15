@@ -162,11 +162,6 @@ void operarInterrupt(int socket_cliente)
 
         switch (codigo_operacion)
         {
-        case CPU_LIBRE:
-            log_debug(logger, "CPU en socket %d marco su disponibilidad (por interrupt)", socket_cliente);
-            marcar_cpu_como_libre(socket_cliente, false);
-            log_debug(logger, "CPU en socket %d marcada como disponible sin replanificar", socket_cliente);
-            break;
         case DESALOJAR_PROCESO:
             log_debug(logger, "Se recibio DESALOJAR_PROCESO desde CPU (socket %d)", socket_cliente);
 
@@ -185,14 +180,29 @@ void operarInterrupt(int socket_cliente)
                 break;
             }
 
+            pthread_mutex_lock(&pcb->mutex_pcb);  
+
             pcb->pc = pc;
             pcb->timer_exec = timer_exec;
-            cambiar_estado(pcb, READY);
-            log_info(logger, "## (%i) - Desalojado por algoritmo SRT", pid);
-            marcar_cpu_como_libre(socket_cliente, false);
-            sem_post(&sem_procesos_en_ready);
+
+            if (pcb->estado_actual == EXEC)
+            {
+                cambiar_estado(pcb, READY);
+                log_info(logger, "## (%i) - Desalojado por algoritmo SRT", pid);
+                sem_post(&sem_procesos_en_ready);
+            }
+            else
+            {
+                log_warning(logger, "Se intento desalojar proceso %d que ya no está en EXEC (actual: %s). Ignorando desalojo.",
+                            pid, nombre_estado(pcb->estado_actual));
+            }
+
+            pthread_mutex_unlock(&pcb->mutex_pcb);  
+
+            //marcar_cpu_como_libre(socket_cliente, false);
 
             break;
+
         default:
             log_warning(logger, "Codigo de operacion inesperado en INTERRUPT: %d", codigo_operacion);
             break;
@@ -303,7 +313,20 @@ void operarIo(int socket_cliente)
             if (!queue_is_empty(dispositivo->cola_procesos))
             {
                 t_pcb *siguiente = queue_pop(dispositivo->cola_procesos);
-                usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempoIO);
+                if (siguiente == NULL) {
+                    log_error(logger, "SE EXTRAYÓ NULL DE LA COLA DE IO %s", dispositivo->nombre);
+                } else {
+                    log_debug(logger, "Se extrae PID %d de la cola de IO %s con tiempo para el io de: %d", siguiente->pid, dispositivo->nombre, siguiente->tiempoIO);
+                }
+
+                // Imprimir cola restante
+                log_debug(logger, "Cola restante de IO %s con socket %d después de POP:", dispositivo->nombre, dispositivo->socket);
+                for (int i = 0; i < list_size(dispositivo->cola_procesos->elements); i++) {
+                    t_pcb *p = list_get(dispositivo->cola_procesos->elements, i);
+                    log_trace(logger, " -> PID: %d", p->pid);
+                }
+
+                usar_o_encolar_io(dispositivo, siguiente, siguiente->tiempoIO, -1);
             }
             break;
         }

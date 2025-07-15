@@ -77,7 +77,7 @@ void procesar_syscall(t_paquete *paquete, int socket_cpu)
 
 void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
 {
-    t_io *dispositivo = buscar_io_por_nombre(nombre_io);
+    t_io *dispositivo = buscar_io_menos_cargado_por_nombre(nombre_io);
 
     if (dispositivo == NULL)
     {
@@ -94,10 +94,10 @@ void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
     sem_post(&sem_procesos_en_blocked); // Avisamos al planificador de mediano plazo que hay procesos para que pueda planificar
 
     // log_info(logger, "El proceso %d ahora esta bloqueado por %d segundos", pcb->pid, tiempo);
-    enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
+    
     // log_info(logger, "El proceso %d se desalojo", pcb->pid);
 
-    usar_o_encolar_io(dispositivo, pcb, tiempo);
+    usar_o_encolar_io(dispositivo, pcb, tiempo, socket_cpu);
 }
 
 void atender_syscall_init_proc(t_pcb *pcb, char *archivo, int tamanio, int socket_cpu)
@@ -135,34 +135,31 @@ void atender_syscall_exit(t_pcb *pcb, int socket_cpu)
     finalizar_proceso(pcb);
 }
 
-t_io *buscar_io_por_nombre(char *nombre_io)
+t_io *buscar_io_menos_cargado_por_nombre(char *nombre_io)
 {
-    t_io *dispositivo_encontrado = NULL;
+    t_io *menos_cargado = NULL;
+    int menor_cola = -1;
 
-    // Busca un dispositivo que tenga nombre_io y esté disponible (asi usamos varias IOs con mismo nombre en simultaneo)
-    for (int i = 0; i < list_size(ios); i++)
-    {
+    for (int i = 0; i < list_size(ios); i++) {
         t_io *dispositivo = list_get(ios, i);
-        if (strcmp(dispositivo->nombre, nombre_io) == 0 && dispositivo->disponible)
-        {
-            dispositivo_encontrado = dispositivo;
-        }
-    }
-    // Sino, busca el primero que matchee con el nombre_io (para encolar)
-    if (dispositivo_encontrado == NULL)
-    {
-        for (int i = 0; i < list_size(ios); i++)
-        {
-            t_io *dispositivo = list_get(ios, i);
-            if (strcmp(dispositivo->nombre, nombre_io) == 0)
-            {
-                dispositivo_encontrado = dispositivo;
+        if (strcmp(dispositivo->nombre, nombre_io) == 0) {
+            int cantidad_en_cola = queue_size(dispositivo->cola_procesos);
+
+            if (menos_cargado == NULL || cantidad_en_cola < menor_cola) {
+                menos_cargado = dispositivo;
+                menor_cola = cantidad_en_cola;
             }
         }
     }
 
-    return dispositivo_encontrado;
+    if (menos_cargado != NULL) {
+        log_debug(logger, "Se seleccionó IO '%s' con socket %d y cola de tamaño %d.",
+                  menos_cargado->nombre, menos_cargado->socket, menor_cola);
+    }
+
+    return menos_cargado;
 }
+
 
 int buscar_index_io_por_socket(int socket)
 {
@@ -190,32 +187,43 @@ t_io *buscar_io_por_socket(int socket)
     return NULL;
 }
 
-void usar_o_encolar_io(t_io *dispositivo, t_pcb *pcb, int tiempo)
+void usar_o_encolar_io(t_io *dispositivo, t_pcb *pcb, int tiempo, int socket_cpu)
 {
+    pthread_mutex_lock(&dispositivo->mutex);
 
-    if (dispositivo->disponible)
-    {
-
+    if (dispositivo->disponible) {
+        
         dispositivo->disponible = false;
         dispositivo->pid_actual = pcb->pid;
 
-        log_debug(logger, "Proceso %d usando IO %s inmediatamente.", pcb->pid, dispositivo->nombre);
-
-        // Enviar al modulo IO el PID y el tiempo
+        log_debug(logger, "Proceso %d usando IO %s inmediatamente con socket %d.", pcb->pid, dispositivo->nombre, dispositivo->socket);
+        if(socket_cpu != -1)
+            enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
         enviar_opcode(SOLICITUD_IO, dispositivo->socket);
         t_paquete *paquete = crear_paquete();
         agregar_int_a_paquete(paquete, pcb->pid);
         agregar_int_a_paquete(paquete, tiempo);
         enviar_paquete(paquete, dispositivo->socket);
         eliminar_paquete(paquete);
-    }
-    else
-    {
+    } else {
         pcb->tiempoIO = tiempo;
         queue_push(dispositivo->cola_procesos, pcb);
-        log_debug(logger, "Proceso %d encolado esperando IO %s.", pcb->pid, dispositivo->nombre);
+        if(socket_cpu != -1)
+            enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
+        log_debug(logger, "Proceso %d encolado esperando IO %s con socket %d.", pcb->pid, dispositivo->nombre, dispositivo->socket);
+
+        // Log de la cola entera
+        log_debug(logger, "Cola actual de IO %s con socket %d:", dispositivo->nombre, dispositivo->socket);
+        for (int i = 0; i < list_size(dispositivo->cola_procesos->elements); i++) {
+            t_pcb *p = list_get(dispositivo->cola_procesos->elements, i);
+            log_trace(logger, " -> PID: %d, estado: %s", p->pid, nombre_estado(p->estado_actual));
+        }
+
     }
+
+    pthread_mutex_unlock(&dispositivo->mutex);
 }
+
 
 void finalizar_proceso(t_pcb *pcb)
 {

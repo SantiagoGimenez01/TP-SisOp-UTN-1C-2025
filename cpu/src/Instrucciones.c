@@ -40,10 +40,12 @@ bool ejecutar_ciclo(uint32_t pid, uint32_t pc)
         if (check_interrupt())
         {
             log_debug(logger, "Proceso %d desalojado", pid);
-
+            if(inst->id == GOTO || inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC){
+                pc++;
+            }
             // Envia el estado del proceso al Kernel
             enviar_estado_proc_kernel(pid, pc);
-
+            enviar_opcode(CPU_LIBRE, socket_dispatch);
             // Reiniciamos el flag de desalojo
             pthread_mutex_lock(&mutex_flag_desalojo);
             flag_desalojo = false;

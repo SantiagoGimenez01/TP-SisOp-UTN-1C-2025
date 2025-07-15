@@ -137,7 +137,7 @@ void *escuchar_interrupt(void *arg)
             flag_desalojo = true;
             pthread_mutex_unlock(&mutex_flag_desalojo);
 
-            enviar_opcode(CPU_LIBRE, socket_interrupt);
+            //enviar_opcode(CPU_LIBRE, socket_interrupt);
 
             break;
 

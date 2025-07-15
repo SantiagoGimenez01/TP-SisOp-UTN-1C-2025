@@ -12,6 +12,8 @@ extern t_list* cpus;
 extern t_list* ios;
 extern t_list* cpus_incompletas;
 extern t_list* pcbs;
+extern pthread_mutex_t mutex_ios;
+
 typedef struct {
     int id;     
     t_pcb* pcb_exec;
@@ -25,7 +27,8 @@ typedef struct {
     int socket;                
     bool disponible;           
     int pid_actual; 
-    t_queue* cola_procesos;           
+    t_queue* cola_procesos; 
+    pthread_mutex_t mutex;          
 } t_io;
 typedef enum {
     CORTO_PLAZO,

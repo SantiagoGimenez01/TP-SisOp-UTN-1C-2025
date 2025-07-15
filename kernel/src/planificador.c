@@ -22,8 +22,15 @@ t_pcb *obtener_siguiente_de_new()
 
     if (list_is_empty(cola_new))
     {
+        log_trace(logger, "[NEW] No hay procesos en NEW.");
         pthread_mutex_unlock(&mutex_new);
         return NULL;
+    }
+
+    log_trace(logger, "[NEW] Cantidad de procesos en NEW: %d", list_size(cola_new));
+    for (int i = 0; i < list_size(cola_new); i++) {
+        t_pcb *p = list_get(cola_new, i);
+        log_trace(logger, "[NEW] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
     }
 
     if (strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0)
@@ -47,7 +54,7 @@ t_pcb *obtener_siguiente_de_new()
 
 void obtenerIndiceDeProcesoMasChico(t_list *cola_new, int *indexMasChico)
 {
-    for (int i = 1; i < list_size(cola_new); i++)
+    for (int i = 0; i < list_size(cola_new); i++)
     {
         t_pcb *actual = list_get(cola_new, i);
         t_pcb *menor_actual = list_get(cola_new, *indexMasChico);
@@ -60,32 +67,42 @@ t_pcb *obtener_siguiente_de_ready()
 {
     pthread_mutex_lock(&mutex_ready);
 
-    t_pcb *proceso = NULL;
-
     if (list_is_empty(cola_ready))
     {
+        log_trace(logger, "[READY] No hay procesos en READY.");
         pthread_mutex_unlock(&mutex_ready);
         return NULL;
     }
 
+    log_trace(logger, "[READY] Cantidad de procesos en READY: %d", list_size(cola_ready));
+    for (int i = 0; i < list_size(cola_ready); i++) {
+        t_pcb *p = list_get(cola_ready, i);
+        log_trace(logger, "[READY] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
+    }
+
+    t_pcb *proceso = NULL;
+
     if (strcmp(configKERNEL.algoritmo_planificacion, "FIFO") == 0)
     {
-        proceso = list_remove(cola_ready, 0); // HACER BIEN
+        proceso = list_remove(cola_ready, 0);
+        log_trace(logger, "[READY] Se seleccionó PID %d por FIFO", proceso->pid);
     }
     else if (strcmp(configKERNEL.algoritmo_planificacion, "SJF") == 0 || strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
     {
         int indexMasCorto = 0;
         obtenerIndiceDeProcesoMasCorto(cola_ready, &indexMasCorto);
         proceso = list_remove(cola_ready, indexMasCorto);
+        log_trace(logger, "[READY] Se seleccionó PID %d por SJF/SRT (índice: %d)", proceso->pid, indexMasCorto);
     }
     else
     {
-        log_error(logger, "Algoritmo de planificacion desconocido: %s", configKERNEL.algoritmo_planificacion);
+        log_error(logger, "[READY] Algoritmo de planificación desconocido: %s", configKERNEL.algoritmo_planificacion);
     }
 
     pthread_mutex_unlock(&mutex_ready);
     return proceso;
 }
+
 
 t_pcb *obtener_siguiente_de_blocked()
 {
@@ -117,48 +134,66 @@ void obtenerIndiceDeProcesoMasCorto(t_list *cola_ready, int *indexMasCorto)
 
 t_cpu *obtener_cpu_con_proc_mas_largo()
 {
-    pthread_mutex_lock(&mutex_cpus);
+    //pthread_mutex_lock(&mutex_cpus);
 
-    t_cpu *cpu = list_get(cpus, 0);
-    // log_info(logger, "ENtre");
-    for (int i = 1; i < list_size(cpus); i++)
+    t_cpu *mejor_cpu = NULL;
+    uint64_t mejor_estimacion_restante = 0;
+    uint64_t ahora = get_timestamp();
+
+    for (int i = 0; i < list_size(cpus); i++)
     {
-        t_cpu *cpu_mayor = list_get(cpus, i);
-        uint64_t ahora = get_timestamp();
-        uint64_t tiempo_ejecucion_mayor = ahora - cpu_mayor->pcb_exec->momento_entrada_estado;
-        uint64_t estimacion_restante_mayor = cpu_mayor->pcb_exec->estimacion_rafaga - tiempo_ejecucion_mayor;
+        t_cpu *cpu = list_get(cpus, i);
+        if (cpu->pcb_exec != NULL)
+        {
+            uint64_t tiempo_ejecucion = ahora - cpu->pcb_exec->momento_entrada_estado;
+            uint64_t estimacion_restante = cpu->pcb_exec->estimacion_rafaga - tiempo_ejecucion;
 
-        uint64_t tiempo_ejecucion = ahora - cpu->pcb_exec->momento_entrada_estado;
-        uint64_t estimacion_restante = cpu->pcb_exec->estimacion_rafaga - tiempo_ejecucion;
+            log_trace(logger, "[SRT_DESALOJO] CPU %d ejecuta PID %d con estimación restante: %ld",
+                      cpu->id, cpu->pcb_exec->pid, estimacion_restante);
 
-        if (estimacion_restante_mayor > estimacion_restante)
-            cpu = cpu_mayor;
+            if (mejor_cpu == NULL || estimacion_restante > mejor_estimacion_restante)
+            {
+                mejor_cpu = cpu;
+                mejor_estimacion_restante = estimacion_restante;
+            }
+        }
+        else
+        {
+            log_trace(logger, "[SRT_DESALOJO] CPU %d no está ejecutando ningún proceso", cpu->id);
+        }
     }
-    pthread_mutex_unlock(&mutex_cpus);
-    return cpu;
+
+    if (mejor_cpu)
+        log_trace(logger, "[SRT_DESALOJO] Se seleccionó CPU %d con estimación restante %ld", mejor_cpu->id, mejor_estimacion_restante);
+    else
+        log_trace(logger, "[SRT_DESALOJO] No se encontró CPU con proceso en ejecución");
+
+    //pthread_mutex_unlock(&mutex_cpus);
+    return mejor_cpu;
 }
+
 
 t_cpu *obtener_cpu_libre()
 {
     pthread_mutex_lock(&mutex_cpus);
 
-    t_cpu *cpu_libre = NULL;
-
     for (int i = 0; i < list_size(cpus); i++)
     {
         t_cpu *cpu = list_get(cpus, i);
+        log_trace(logger, "[CPU_LIBRE] CPU ID %d disponible: %s", cpu->id, cpu->disponible ? "SI" : "NO");
         if (cpu->disponible)
         {
-            log_debug(logger, "Encontro cpu disponible");
-            cpu_libre = cpu;
-            // cpu->disponible = false;
-            break;
+            log_trace(logger, "[CPU_LIBRE] Se seleccionó CPU ID %d", cpu->id);
+            pthread_mutex_unlock(&mutex_cpus);
+            return cpu;
         }
     }
-    log_debug(logger, "La cpu elegida es %d", cpu_libre->id);
+
+    log_trace(logger, "[CPU_LIBRE] No se encontró CPU disponible.");
     pthread_mutex_unlock(&mutex_cpus);
-    return cpu_libre;
+    return NULL;
 }
+
 
 t_pcb *obtener_siguiente_de_suspReady()
 {
@@ -166,9 +201,17 @@ t_pcb *obtener_siguiente_de_suspReady()
     t_pcb *proceso = NULL;
     if (list_is_empty(cola_susp_ready))
     {
+        log_trace(logger, "[SUSP_READY] No hay procesos en SUSP_READY.");
         pthread_mutex_unlock(&mutex_susp_ready);
         return NULL;
     }
+
+    log_trace(logger, "[SUSP_READY] Cantidad de procesos en NEW: %d", list_size(cola_new));
+    for (int i = 0; i < list_size(cola_susp_ready); i++) {
+        t_pcb *p = list_get(cola_susp_ready, i);
+        log_trace(logger, "[SUSP_READY] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
+    }
+
     // log_info(logger, "Encontro un proceso en susp ready");
     if (strcmp(configKERNEL.algoritmo_cola_new, "FIFO") == 0)
     {
@@ -261,16 +304,28 @@ bool hayCpus()
     for (int i = 0; i < list_size(cpus); i++)
     {
         t_cpu *cpu = list_get(cpus, i);
+        log_trace(logger, "[HAY_CPUS] CPU ID %d disponible: %s", cpu->id, cpu->disponible ? "SI" : "NO");
         if (cpu->disponible)
         {
             pthread_mutex_unlock(&mutex_cpus);
             return true;
         }
     }
+    log_trace(logger, "[HAY_CPUS] No hay CPUs disponibles.");
     pthread_mutex_unlock(&mutex_cpus);
     return false;
 }
 
+
+t_pcb* obtener_ultimo_ready() {
+    pthread_mutex_lock(&mutex_ready);
+    t_pcb* pcb = NULL;
+    if (!list_is_empty(cola_ready)) {
+        pcb = list_get(cola_ready, list_size(cola_ready) - 1);
+    }
+    pthread_mutex_unlock(&mutex_ready);
+    return pcb;
+}
 /*
 Basicamente lo que hace es ejecutar el 1er proceso correctamente, luego entran los 4 que crea, compara a todos con el que esta ejecutando, compara bien, no desaloja ya que al
 principio todos tienen la misma estimacion inicial pero el que esta en ejecucion tiene mas prioridad (igualmente cuando me logeaba lo que le quedaba ponia 10mil que es la
@@ -321,43 +376,54 @@ void *planificador_corto_plazo(void *arg)
         if (desalojo)
         {
             bool cpusLibres = hayCpus(); // Comprueba si hay CPU libre
-            t_pcb *procesoEntrante = NULL;
-            pthread_mutex_lock(&mutex_ready);
-            if (!list_is_empty(cola_ready))
-            {
-                procesoEntrante = list_get(cola_ready, list_size(cola_ready) - 1); // Get the last process that entered
-                pthread_mutex_unlock(&mutex_ready);
-            }
-            else
-            {
-                // En caso que no haya proceso entrante
-                // (si puede pasar :) ya que el sem_corto_plazo puede dejar pasar en caso de CPU_LIBRE pero la lista estar vacia)
-                log_debug(logger, "Cola ready vacia.");
-                pthread_mutex_unlock(&mutex_ready);
-                continue;
-            }
             // Si no hay CPUs libres...
             if (!cpusLibres)
             {
+                   // Solo buscar el proceso entrante si hay que evaluar desalojo
+                t_pcb* procesoEntrante = obtener_ultimo_ready();
+                if (procesoEntrante == NULL) {
+                    log_debug(logger, "No se pudo obtener proceso de cola READY");
+                    continue;
+                }
+
+                t_cpu* cpu = NULL;
+                t_pcb* pcb = NULL;
+                uint64_t estimacion_restante = 0;
+
                 log_debug(logger, "No hay CPUs libres");
+                pthread_mutex_lock(&mutex_cpus);
                 cpu = obtener_cpu_con_proc_mas_largo();
-                uint64_t ahora = get_timestamp();
-                uint64_t tiempo_ejecucion = ahora - cpu->pcb_exec->momento_entrada_estado;
-                uint64_t estimacion_restante = cpu->pcb_exec->estimacion_rafaga - tiempo_ejecucion;
+                if (cpu != NULL && cpu->pcb_exec != NULL) {
+                    pcb = cpu->pcb_exec;
+                    uint64_t ahora = get_timestamp();
+                    uint64_t tiempo_ejecucion = ahora - pcb->momento_entrada_estado;
+                    estimacion_restante = pcb->estimacion_rafaga - tiempo_ejecucion;
+                }
+                pthread_mutex_unlock(&mutex_cpus);
+
+                if (cpu == NULL || pcb == NULL) {
+                    log_debug(logger, "[SRT_DESALOJO] No se encontró CPU válida o proceso ejecutando");
+                    continue;
+                }
                 if (procesoEntrante->estimacion_rafaga < estimacion_restante)
                 { // El proceso entrante tiene mas prioridad q el q ejecuta
                     log_debug(logger, "HAY DESALOJO");
-                    log_debug(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", cpu->pcb_exec->pid, estimacion_restante,
+                    log_debug(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", pcb->pid, cpu->id, procesoEntrante->pid);
+                    log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", pcb->pid, estimacion_restante,
                               procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
-                    cpu->pcb_exec = NULL;
+                    //cpu->pcb_exec = NULL;
                 }
                 else
                 { // El q ejecuta tiene mas prioridad
+                    
+                    if (cpu == NULL || cpu->pcb_exec == NULL) {
+                        log_trace(logger, "[SRT_DESALOJO] CPU o proceso en ejecución era NULL en rama NO DESALOJO");
+                        continue;
+                    }
                     log_debug(logger, "NO HAY DESALOJO");
-                    log_debug(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", cpu->pcb_exec->pid, cpu->id, procesoEntrante->pid);
-                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", cpu->pcb_exec->pid, estimacion_restante,
+                    log_debug(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", pcb->pid, cpu->id, procesoEntrante->pid);
+                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", pcb->pid, estimacion_restante,
                               procesoEntrante->pid, procesoEntrante->timer_exec);
                     continue;
                 }
@@ -384,9 +450,8 @@ void *planificador_corto_plazo(void *arg)
         // Si la cpu no tiene proceso la liberamos
         if (!proceso)
         {
-            // log_warning(logger, "No se encontro proceso en READY, se libera la CPU.");
             cpu->disponible = true;
-            // sem_post(&sem_cpu_disponible);
+            log_debug(logger, "No hay proceso disponible para ejecutar. CPU %d queda libre", cpu->id);
             continue;
         }
 
@@ -420,6 +485,11 @@ void *planificador_mediano_plazo(void *arg)
     {
         sem_wait(&sem_procesos_en_blocked);          // Espero a que haya algun proceso bloqueado
         t_pcb *pcb = obtener_siguiente_de_blocked(); // Obtiene proceso bloqueado
+
+        if (pcb == NULL) {
+            log_warning(logger, "Mediano plazo: no se obtuvo PCB de la cola BLOCKED.");
+            continue;
+        }
         pcb->timer_flag = 1;
         // ACA INICIA EL TIMER DE SUSPENSION!!!!
         pthread_t hilo_timer;
