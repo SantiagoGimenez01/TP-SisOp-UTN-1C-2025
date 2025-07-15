@@ -40,7 +40,9 @@ void *atender_cliente(void *socket_cliente_void)
 
 void establecerConexiones()
 {
-    int socket_servidor = iniciarServidor(string_itoa(configMEMORIA.puerto_escucha), logger, "MEMORIA");
+    char* puerto_string = string_itoa(configMEMORIA.puerto_escucha);
+    int socket_servidor = iniciarServidor(puerto_string, logger, "MEMORIA");
+    free(puerto_string);
 
     log_debug(logger, "Servidor MEMORIA escuchando conexiones.");
 

@@ -4,6 +4,7 @@
 #include "utils/libs/config.h"
 #include "utils/libs/logger.h"
 
+extern t_config* config_global;
 extern config_memoria_t configMEMORIA;
 extern t_log* logger;
 extern t_bitarray* bitmap_frames;

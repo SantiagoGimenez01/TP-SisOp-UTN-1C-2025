@@ -1,5 +1,6 @@
 #include "inicializar.h"
 #define MULTIPLICADOR_SWAP 4
+char* buffer_bitmap;
 void inicializar_memoria()
 {
 
@@ -7,9 +8,9 @@ void inicializar_memoria()
     cantidad_frames = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
 
     int tamanio_bitmap_bytes = (cantidad_frames + 7) / 8;
-    char *bitmap_memoria = calloc(tamanio_bitmap_bytes, sizeof(char)); // todos los bits en 0
+    buffer_bitmap = calloc(tamanio_bitmap_bytes, sizeof(char)); // todos los bits en 0
 
-    bitmap_frames = bitarray_create_with_mode(bitmap_memoria, tamanio_bitmap_bytes, LSB_FIRST);
+    bitmap_frames = bitarray_create_with_mode(buffer_bitmap, tamanio_bitmap_bytes, LSB_FIRST);
 
     memoria_fisica = calloc(configMEMORIA.tam_memoria, sizeof(char)); // simula la memoria
 
@@ -135,6 +136,7 @@ void log_metricas_proceso(t_proceso_en_memoria *proceso)
              proceso->metricas.lecturas_memoria,
              proceso->metricas.escrituras_memoria);
 }
+
 void liberar_marcos_de_proceso(t_tabla_nivel *tabla, int nivel_actual)
 {
     for (int i = 0; i < configMEMORIA.entradas_por_tabla; i++)
@@ -172,10 +174,13 @@ void liberar_proceso_en_memoria(t_proceso_en_memoria *proceso)
 {
     liberar_marcos_de_proceso(proceso->tabla_nivel_1, 1);
 
+    list_destroy_and_destroy_elements(proceso->instrucciones, free);
+
+    free(proceso->nombre_archivo);
+
     bool eliminado = list_remove_element(procesos_en_memoria, proceso);
     log_trace(logger, "Proceso %d removido de lista: %s", proceso->pid, eliminado ? "sí" : "no");
 
-    free(proceso->nombre_archivo);
     free(proceso);
     for (int i = 0; i < cantidad_frames; i++)
     {
@@ -215,4 +220,43 @@ void crear_swapfile()
     bitmap_swap = bitarray_create_with_mode(bitmap_data, tamanio_bitmap_bytes, LSB_FIRST);
 
     log_debug(logger, "Bitmap de SWAP creado con %d bits (%d bytes)", slots_en_swap, tamanio_bitmap_bytes);
+}
+
+void finalizar_memoria(){
+
+    log_info(logger, "Finalizando módulo MEMORIA");
+
+    // Logger y config
+    
+    config_destroy(config_global);
+
+ 
+    
+    free(memoria_fisica);
+
+    liberar_todos_los_procesos();
+
+
+       // Bitmap
+    bitarray_destroy(bitmap_frames);
+    if (bitmap_swap != NULL) {
+    // Asumiendo que bitmap_swap->bitarray es el puntero al buffer que se 'calloc'eó
+    free((char*)bitmap_swap->bitarray);
+    bitarray_destroy(bitmap_swap); // Esto libera la estructura del bitarray en sí
+    }
+    free(buffer_bitmap);
+    log_destroy(logger);
+}
+
+void liberar_todos_los_procesos()
+{
+    list_destroy_and_destroy_elements(procesos_en_memoria, (void*)liberar_proceso_en_memoria);
+    list_destroy_and_destroy_elements(paginas_en_swap, free);
+
+}
+
+void handler_sigint(int signo) {
+    log_info(logger, "SIGINT recibido, liberando recursos...");
+    finalizar_memoria();
+    exit(EXIT_SUCCESS);
 }

@@ -6,7 +6,7 @@
 #include <commons/collections/list.h>
 #include <stdbool.h>
 #include "configuracion.h"
-
+#include <signal.h>
 // Declaración de estructuras si es necesario usar tipos
 
 void inicializar_memoria();
@@ -22,4 +22,8 @@ int buscar_frame_libre();
 void asignar_marcos_a_paginas(t_tabla_nivel* tabla, int nivel_actual, int nivel_maximo, int* paginas_asignadas, int total_paginas);  
 
 void crear_swapfile();
+
+void finalizar_memoria();
+void liberar_todos_los_procesos();
+void handler_sigint(int signo);
 #endif
