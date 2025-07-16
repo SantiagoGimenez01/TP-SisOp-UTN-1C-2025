@@ -290,6 +290,7 @@ void agregar_a_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_susp_blocked);
         list_add(cola_susp_blocked, pcb);
         pthread_mutex_unlock(&mutex_susp_blocked);
+        sem_post(&sem_procesos_que_van_a_ready);
         break;
     case EXIT_PROCESS:
         pthread_mutex_lock(&mutex_exit);
