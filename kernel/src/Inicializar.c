@@ -239,7 +239,7 @@ void remover_de_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_susp_ready);
         list_remove_element(cola_susp_ready, pcb);
         pthread_mutex_unlock(&mutex_susp_ready);
-        sem_post(&sem_procesos_en_suspReady);
+        //sem_post(&sem_procesos_en_suspReady);
         break;
     case SUSP_BLOCKED:
         pthread_mutex_lock(&mutex_susp_blocked);

@@ -18,12 +18,12 @@ t_pcb *obtener_siguiente_de_new()
 {
     t_pcb *candidato = NULL;
 
-    pthread_mutex_lock(&mutex_new);
+    //pthread_mutex_lock(&mutex_new);
 
     if (list_is_empty(cola_new))
     {
         log_trace(logger, "[NEW] No hay procesos en NEW.");
-        pthread_mutex_unlock(&mutex_new);
+        //pthread_mutex_unlock(&mutex_new);
         return NULL;
     }
 
@@ -49,7 +49,7 @@ t_pcb *obtener_siguiente_de_new()
         log_error(logger, "Algoritmo de planificacion de cola NEW desconocido: %s", configKERNEL.algoritmo_cola_new);
     }
 
-    pthread_mutex_unlock(&mutex_new);
+    //pthread_mutex_unlock(&mutex_new);
     return candidato;
 }
 
@@ -204,12 +204,12 @@ t_cpu *obtener_cpu_libre()
 
 t_pcb *obtener_siguiente_de_suspReady()
 {
-    pthread_mutex_lock(&mutex_susp_ready);
+    //pthread_mutex_lock(&mutex_susp_ready);
     t_pcb *proceso = NULL;
     if (list_is_empty(cola_susp_ready))
     {
         log_trace(logger, "[SUSP_READY] No hay procesos en SUSP_READY.");
-        pthread_mutex_unlock(&mutex_susp_ready);
+        //pthread_mutex_unlock(&mutex_susp_ready);
         return NULL;
     }
 
@@ -232,11 +232,10 @@ t_pcb *obtener_siguiente_de_suspReady()
         proceso = list_get(cola_susp_ready, 0);           // Seleccionamos el mas chico y lo sacamos de new
     }
 
-    pthread_mutex_unlock(&mutex_susp_ready);
+    //pthread_mutex_unlock(&mutex_susp_ready);
     // log_info(logger, "## (%d) Es el proceso en susp ready", proceso->pid);
     return proceso;
 }
-
 void *planificador_largo_plazo(void *arg)
 {
     log_debug(logger, "Esperando Enter para iniciar planificacion...");
@@ -245,65 +244,67 @@ void *planificador_largo_plazo(void *arg)
 
     while (1)
     {
-        t_pcb *siguiente;
-        log_debug(logger, "ENTRO PLANIFICACION.");
-        sem_wait(&sem_procesos_que_van_a_ready);
-        if (list_is_empty(cola_susp_ready))
-        {
-            sem_wait(&sem_procesos_en_new);
-            siguiente = obtener_siguiente_de_new();
-        }
-        else
-        {
-            sem_wait(&sem_procesos_en_suspReady);
+        sem_wait(&sem_procesos_que_van_a_ready); 
+        log_debug(logger, "ENTRO PLANIFICACION. Evaluando procesos para READY.");
+
+        t_pcb *siguiente = NULL;
+        bool desde_susp_ready = false;
+
+        pthread_mutex_lock(&mutex_susp_ready);
+        if (!list_is_empty(cola_susp_ready)) {
+
             siguiente = obtener_siguiente_de_suspReady();
+            desde_susp_ready = true;
+        }
+        pthread_mutex_unlock(&mutex_susp_ready);
+
+        if (siguiente == NULL) {
+            pthread_mutex_lock(&mutex_new);
+            if (!list_is_empty(cola_new)) {
+                siguiente = obtener_siguiente_de_new(); 
+            }
+            pthread_mutex_unlock(&mutex_new);
         }
 
-        if (!siguiente)
-            continue;
-    
-        bool aceptado;
-        
-        //Si viene de NEW crea el proceso (INIT_PROC) y si viene de SUSP_READY desuspende el proceso (DESUSPENDER)
-        if(siguiente->estado_actual == SUSP_READY)
-            aceptado = solicitar_desuspender_proceso(siguiente->pid);
-        else if (siguiente->estado_actual == NEW)
-            aceptado = solicitar_espacio_a_memoria(siguiente);
+        if (!siguiente) {
+            log_debug(logger, "No hay procesos elegibles en NEW o SUSP_READY en este momento.");
+  
+            continue; // no deberia pasar de igual forma
+        }
 
-        // log_info(logger, "Proceso %d con estimacion inicial: %d", siguiente->pid, siguiente->estimacion_rafaga);
-        if (aceptado)
-        {
-            
-        //Si el proceso se elimina de la lista de su estado actual ya que pasa a ready
-            if(siguiente->estado_actual == NEW){
-                pthread_mutex_lock(&mutex_new);
-                list_remove_element(cola_new, siguiente);
-                pthread_mutex_unlock(&mutex_new);
-            }
-                
-            else{
+        bool aceptado = false;
+        if (desde_susp_ready) {
+            aceptado = solicitar_desuspender_proceso(siguiente->pid);
+        } else { 
+            aceptado = solicitar_espacio_a_memoria(siguiente);
+        }
+
+        if (aceptado) {
+            if (desde_susp_ready) {
                 pthread_mutex_lock(&mutex_susp_ready);
                 list_remove_element(cola_susp_ready, siguiente);
                 pthread_mutex_unlock(&mutex_susp_ready);
+                sem_wait(&sem_procesos_en_suspReady); 
+            } else { // Viene de NEW
+                pthread_mutex_lock(&mutex_new);
+                list_remove_element(cola_new, siguiente);
+                pthread_mutex_unlock(&mutex_new);
+                sem_wait(&sem_procesos_en_new); 
             }
-                
+            
             cambiar_estado(siguiente, READY);
-            // pthread_mutex_lock(&mutex_ready);
-            // list_add(cola_ready, siguiente);
-            // pthread_mutex_unlock(&mutex_ready);
-            // sem_post(&sem_procesos_en_ready);  // Avisar al planificador corto plazo
-            // sem_post(&sem_cpu_disponible); // esto no lo tengo que hacer aca solo cuando me instancio por primera vez!
 
             log_debug(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
-        }
-        else
-        {
-            log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
-        }
-    }
 
+        } else {
+            
+            log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
+
+        }
+    } 
     return NULL;
 }
+
 
 bool hayDesalojo()
 {
