@@ -177,11 +177,7 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     }
     // Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta
     // ejecutando termina, el semaforo de procesos en ready no va a dejar avanzar (igual no estaria funcionando xd)
-    if (pcb->estado_actual != EXEC && nuevo_estado == READY)
-    {
-        sem_post(&sem_procesos_en_ready);
-        sem_post(&sem_corto_plazo);
-    }
+
 
     if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS)
     {
@@ -204,9 +200,13 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     // Agregar a la nueva cola
     agregar_a_cola(pcb, nuevo_estado);
     // log_info(logger, "PCB agegado a la nueva cola");
-
+    if (pcb->estado_actual != EXEC && nuevo_estado == READY)
+    {
+        sem_post(&sem_procesos_en_ready);
+        sem_post(&sem_corto_plazo);
+    }   
     log_info(logger, "## (%d) Pasa del estado %s al estado %s",
-             pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
+     pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
 }
 
 int calcularEstimacion(t_pcb *pcb)
