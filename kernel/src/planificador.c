@@ -18,17 +18,18 @@ t_pcb *obtener_siguiente_de_new()
 {
     t_pcb *candidato = NULL;
 
-    //pthread_mutex_lock(&mutex_new);
+    // pthread_mutex_lock(&mutex_new);
 
     if (list_is_empty(cola_new))
     {
         log_trace(logger, "[NEW] No hay procesos en NEW.");
-        //pthread_mutex_unlock(&mutex_new);
+        // pthread_mutex_unlock(&mutex_new);
         return NULL;
     }
 
     log_trace(logger, "[NEW] Cantidad de procesos en NEW: %d", list_size(cola_new));
-    for (int i = 0; i < list_size(cola_new); i++) {
+    for (int i = 0; i < list_size(cola_new); i++)
+    {
         t_pcb *p = list_get(cola_new, i);
         log_trace(logger, "[NEW] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
     }
@@ -39,23 +40,24 @@ t_pcb *obtener_siguiente_de_new()
     }
     else if (strcmp(configKERNEL.algoritmo_cola_new, "PMCP") == 0)
     {
-        //int indexMasChico = 0;                                    // El proceso mas chico comienza siendo el 1ro de la lista
-        //obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
-        list_sort(cola_new, procesoMasChico); //Ordena los procesos de forma ascendente
-        candidato = list_get(cola_new, 0);  // Seleccionamos el primero luego del sort (O sea el mas chico)
+        // int indexMasChico = 0;                                    // El proceso mas chico comienza siendo el 1ro de la lista
+        // obtenerIndiceDeProcesoMasChico(cola_new, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
+        list_sort(cola_new, procesoMasChico); // Ordena los procesos de forma ascendente
+        candidato = list_get(cola_new, 0);    // Seleccionamos el primero luego del sort (O sea el mas chico)
     }
     else
     {
         log_error(logger, "Algoritmo de planificacion de cola NEW desconocido: %s", configKERNEL.algoritmo_cola_new);
     }
 
-    //pthread_mutex_unlock(&mutex_new);
+    // pthread_mutex_unlock(&mutex_new);
     return candidato;
 }
 
-bool procesoMasChico(void* a, void* b) {
-    t_pcb* proceso_a = (t_pcb*) a;
-    t_pcb* proceso_b = (t_pcb*) b;
+bool procesoMasChico(void *a, void *b)
+{
+    t_pcb *proceso_a = (t_pcb *)a;
+    t_pcb *proceso_b = (t_pcb *)b;
     return proceso_a->tamanio <= proceso_b->tamanio;
 }
 
@@ -82,7 +84,8 @@ t_pcb *obtener_siguiente_de_ready()
     }
 
     log_trace(logger, "[READY] Cantidad de procesos en READY: %d", list_size(cola_ready));
-    for (int i = 0; i < list_size(cola_ready); i++) {
+    for (int i = 0; i < list_size(cola_ready); i++)
+    {
         t_pcb *p = list_get(cola_ready, i);
         log_trace(logger, "[READY] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
     }
@@ -110,20 +113,14 @@ t_pcb *obtener_siguiente_de_ready()
     return proceso;
 }
 
-
 t_pcb *obtener_siguiente_de_blocked()
 {
-    pthread_mutex_lock(&mutex_blocked);
-
     t_pcb *proceso = NULL;
-
-    if (list_is_empty(cola_blocked))
+    pthread_mutex_lock(&mutex_blocked);
+    if (!list_is_empty(cola_blocked))
     {
-        pthread_mutex_unlock(&mutex_blocked);
-        return NULL;
+        proceso = list_remove(cola_blocked, 0);
     }
-
-    proceso = list_remove(cola_blocked, 0);
     pthread_mutex_unlock(&mutex_blocked);
     return proceso;
 }
@@ -141,7 +138,7 @@ void obtenerIndiceDeProcesoMasCorto(t_list *cola_ready, int *indexMasCorto)
 
 t_cpu *obtener_cpu_con_proc_mas_largo()
 {
-    //pthread_mutex_lock(&mutex_cpus);
+    // pthread_mutex_lock(&mutex_cpus);
 
     t_cpu *mejor_cpu = NULL;
     uint64_t mejor_estimacion_restante = 0;
@@ -175,10 +172,9 @@ t_cpu *obtener_cpu_con_proc_mas_largo()
     else
         log_trace(logger, "[SRT_DESALOJO] No se encontró CPU con proceso en ejecución");
 
-    //pthread_mutex_unlock(&mutex_cpus);
+    // pthread_mutex_unlock(&mutex_cpus);
     return mejor_cpu;
 }
-
 
 t_cpu *obtener_cpu_libre()
 {
@@ -201,20 +197,20 @@ t_cpu *obtener_cpu_libre()
     return NULL;
 }
 
-
 t_pcb *obtener_siguiente_de_suspReady()
 {
-    //pthread_mutex_lock(&mutex_susp_ready);
+    // pthread_mutex_lock(&mutex_susp_ready);
     t_pcb *proceso = NULL;
     if (list_is_empty(cola_susp_ready))
     {
         log_trace(logger, "[SUSP_READY] No hay procesos en SUSP_READY.");
-        //pthread_mutex_unlock(&mutex_susp_ready);
+        // pthread_mutex_unlock(&mutex_susp_ready);
         return NULL;
     }
 
     log_trace(logger, "[SUSP_READY] Cantidad de procesos en SUSP_READY: %d", list_size(cola_susp_ready));
-    for (int i = 0; i < list_size(cola_susp_ready); i++) {
+    for (int i = 0; i < list_size(cola_susp_ready); i++)
+    {
         t_pcb *p = list_get(cola_susp_ready, i);
         log_trace(logger, "[SUSP_READY] -> PID: %d, Estimacion: %d", p->pid, p->estimacion_rafaga);
     }
@@ -226,14 +222,14 @@ t_pcb *obtener_siguiente_de_suspReady()
     }
     else
     {
-        //int indexMasChico = 0;                                           // El proceso mas chico comienza siendo el 1ro de la lista
-        //obtenerIndiceDeProcesoMasChico(cola_susp_ready, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
-        list_sort(cola_susp_ready, procesoMasChico); //Ordena los procesos de forma ascendente
-        proceso = list_get(cola_susp_ready, 0);           // Seleccionamos el mas chico y lo sacamos de new
+        // int indexMasChico = 0;                                           // El proceso mas chico comienza siendo el 1ro de la lista
+        // obtenerIndiceDeProcesoMasChico(cola_susp_ready, &indexMasChico); // Obtenemos la posicion del verdadero proceso mas chico
+        list_sort(cola_susp_ready, procesoMasChico); // Ordena los procesos de forma ascendente
+        proceso = list_get(cola_susp_ready, 0);      // Seleccionamos el mas chico y lo sacamos de new
     }
 
-    //pthread_mutex_unlock(&mutex_susp_ready);
-    // log_info(logger, "## (%d) Es el proceso en susp ready", proceso->pid);
+    // pthread_mutex_unlock(&mutex_susp_ready);
+    //  log_info(logger, "## (%d) Es el proceso en susp ready", proceso->pid);
     return proceso;
 }
 void *planificador_largo_plazo(void *arg)
@@ -244,67 +240,53 @@ void *planificador_largo_plazo(void *arg)
 
     while (1)
     {
-        sem_wait(&sem_procesos_que_van_a_ready); 
+        sem_wait(&sem_procesos_que_van_a_ready);
         log_debug(logger, "ENTRO PLANIFICACION. Evaluando procesos para READY.");
 
         t_pcb *siguiente = NULL;
         bool desde_susp_ready = false;
 
-        pthread_mutex_lock(&mutex_susp_ready);
-        if (!list_is_empty(cola_susp_ready)) {
-
+        if (!list_is_empty(cola_susp_ready))
+        {
+            pthread_mutex_lock(&mutex_susp_ready);
             siguiente = obtener_siguiente_de_suspReady();
             desde_susp_ready = true;
+            pthread_mutex_unlock(&mutex_susp_ready);
         }
-        pthread_mutex_unlock(&mutex_susp_ready);
-
-        if (siguiente == NULL) {
+        else if (!list_is_empty(cola_new))
+        {
             pthread_mutex_lock(&mutex_new);
-            if (!list_is_empty(cola_new)) {
-                siguiente = obtener_siguiente_de_new(); 
-            }
+            siguiente = obtener_siguiente_de_new();
             pthread_mutex_unlock(&mutex_new);
         }
-
-        if (!siguiente) {
+        else
+        {
             log_debug(logger, "No hay procesos elegibles en NEW o SUSP_READY en este momento.");
-  
             continue; // no deberia pasar de igual forma
         }
 
         bool aceptado = false;
-        if (desde_susp_ready) {
+        if (desde_susp_ready)
+        {
             aceptado = solicitar_desuspender_proceso(siguiente->pid);
-        } else { 
+        }
+        else
+        {
             aceptado = solicitar_espacio_a_memoria(siguiente);
         }
 
-        if (aceptado) {
-            if (desde_susp_ready) {
-                pthread_mutex_lock(&mutex_susp_ready);
-                list_remove_element(cola_susp_ready, siguiente);
-                pthread_mutex_unlock(&mutex_susp_ready);
-                sem_wait(&sem_procesos_en_suspReady); 
-            } else { // Viene de NEW
-                pthread_mutex_lock(&mutex_new);
-                list_remove_element(cola_new, siguiente);
-                pthread_mutex_unlock(&mutex_new);
-                sem_wait(&sem_procesos_en_new); 
-            }
-            
+        if (aceptado)
+        {
             cambiar_estado(siguiente, READY);
-
             log_debug(logger, "Proceso %d aceptado por Memoria y paso a READY", siguiente->pid);
-
-        } else {
-            
-            log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
-
         }
-    } 
+        else
+        {
+            log_warning(logger, "Memoria rechazo al proceso %d (no hay espacio)", siguiente->pid);
+        }
+    }
     return NULL;
 }
-
 
 bool hayDesalojo()
 {
@@ -334,11 +316,12 @@ bool hayCpus()
     return false;
 }
 
-
-t_pcb* obtener_ultimo_ready() {
+t_pcb *obtener_ultimo_ready()
+{
     pthread_mutex_lock(&mutex_ready);
-    t_pcb* pcb = NULL;
-    if (!list_is_empty(cola_ready)) {
+    t_pcb *pcb = NULL;
+    if (!list_is_empty(cola_ready))
+    {
         pcb = list_get(cola_ready, list_size(cola_ready) - 1);
     }
     pthread_mutex_unlock(&mutex_ready);
@@ -397,21 +380,23 @@ void *planificador_corto_plazo(void *arg)
             // Si no hay CPUs libres...
             if (!cpusLibres)
             {
-                   // Solo buscar el proceso entrante si hay que evaluar desalojo
-                t_pcb* procesoEntrante = obtener_ultimo_ready();
-                if (procesoEntrante == NULL) {
+                // Solo buscar el proceso entrante si hay que evaluar desalojo
+                t_pcb *procesoEntrante = obtener_ultimo_ready();
+                if (procesoEntrante == NULL)
+                {
                     log_debug(logger, "No se pudo obtener proceso de cola READY");
                     continue;
                 }
 
-                t_cpu* cpu = NULL;
-                t_pcb* pcb = NULL;
+                t_cpu *cpu = NULL;
+                t_pcb *pcb = NULL;
                 uint64_t estimacion_restante = 0;
 
                 log_debug(logger, "No hay CPUs libres");
                 pthread_mutex_lock(&mutex_cpus);
                 cpu = obtener_cpu_con_proc_mas_largo();
-                if (cpu != NULL && cpu->pcb_exec != NULL) {
+                if (cpu != NULL && cpu->pcb_exec != NULL)
+                {
                     pcb = cpu->pcb_exec;
                     uint64_t ahora = get_timestamp();
                     uint64_t tiempo_ejecucion = ahora - pcb->momento_entrada_estado;
@@ -419,7 +404,8 @@ void *planificador_corto_plazo(void *arg)
                 }
                 pthread_mutex_unlock(&mutex_cpus);
 
-                if (cpu == NULL || pcb == NULL) {
+                if (cpu == NULL || pcb == NULL)
+                {
                     log_debug(logger, "[SRT_DESALOJO] No se encontró CPU válida o proceso ejecutando");
                     continue;
                 }
@@ -430,12 +416,13 @@ void *planificador_corto_plazo(void *arg)
                     log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", pcb->pid, estimacion_restante,
                               procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
-                    //cpu->pcb_exec = NULL;
+                    // cpu->pcb_exec = NULL;
                 }
                 else
                 { // El q ejecuta tiene mas prioridad
-                    
-                    if (cpu == NULL || cpu->pcb_exec == NULL) {
+
+                    if (cpu == NULL || cpu->pcb_exec == NULL)
+                    {
                         log_trace(logger, "[SRT_DESALOJO] CPU o proceso en ejecución era NULL en rama NO DESALOJO");
                         continue;
                     }
@@ -504,7 +491,8 @@ void *planificador_mediano_plazo(void *arg)
         sem_wait(&sem_procesos_en_blocked);          // Espero a que haya algun proceso bloqueado
         t_pcb *pcb = obtener_siguiente_de_blocked(); // Obtiene proceso bloqueado
 
-        if (pcb == NULL) {
+        if (pcb == NULL)
+        {
             log_warning(logger, "Mediano plazo: no se obtuvo PCB de la cola BLOCKED.");
             continue;
         }
