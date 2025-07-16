@@ -143,7 +143,7 @@ void operarDispatch(int socket_cliente)
             log_debug(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
             marcar_cpu_como_libre(socket_cliente, true);
             sem_post(&sem_corto_plazo);
-            sem_post(&sem_cpu_disponible);
+            //sem_post(&sem_cpu_disponible);
             break;
 
         default:
