@@ -560,7 +560,6 @@ void enviar_proceso(t_cpu *cpu, t_pcb *pcb)
 
     agregar_int_a_paquete(paquete, pcb->pid);
     agregar_int_a_paquete(paquete, pcb->pc);
-    agregar_int_a_paquete(paquete, pcb->estimacion_rafaga);
 
     enviar_paquete(paquete, cpu->socket_dispatch);
     eliminar_paquete(paquete);

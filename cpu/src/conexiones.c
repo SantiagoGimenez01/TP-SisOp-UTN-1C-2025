@@ -93,9 +93,8 @@ void *escuchar_dispatch(void *arg)
 
             uint32_t pid = 0;
             uint32_t pc = 0;
-            uint32_t estimacion = 0;
-
-            recibir_pcb(socket_dispatch, &pid, &pc, &estimacion);
+    
+            recibir_pcb(socket_dispatch, &pid, &pc);
 
             log_debug(logger, "Ejecutando proceso PID=%d desde PC=%d", pid, pc);
             bool success = ejecutar_ciclo(pid, pc);
@@ -150,7 +149,7 @@ void *escuchar_interrupt(void *arg)
     return NULL;
 }
 
-void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc, uint32_t *estimacion)
+void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc)
 {
     t_paquete *paquete = recibir_paquete(socket_dispatch);
 
@@ -159,11 +158,8 @@ void recibir_pcb(int socket_dispatch, uint32_t *pid, uint32_t *pc, uint32_t *est
     offset += sizeof(uint32_t);
 
     memcpy(pc, paquete->buffer->stream + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    memcpy(estimacion, paquete->buffer->stream + offset, sizeof(uint32_t));
 
     eliminar_paquete(paquete);
 
-    log_debug(logger, "Recibido PCB: PID=%d, PC=%d, Estimacion=%d", *pid, *pc, *estimacion);
+    log_debug(logger, "Recibido PCB: PID=%d, PC=%d", *pid, *pc);
 }
