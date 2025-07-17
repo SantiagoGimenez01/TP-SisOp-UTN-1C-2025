@@ -12,7 +12,6 @@ t_list *cola_susp_ready = NULL;
 t_list *cola_susp_blocked = NULL;
 t_list *pcbs = NULL;
 
-sem_t sem_procesos_en_ready;
 sem_t sem_procesos_en_blocked;
 sem_t sem_procesos_que_van_a_ready;
 
@@ -27,7 +26,6 @@ pthread_mutex_t mutex_susp_blocked;
 
 sem_t sem_agregar_cpu;
 
-sem_t sem_cpu_disponible;
 sem_t sem_corto_plazo;
 
 pthread_mutex_t mutex_cpus = PTHREAD_MUTEX_INITIALIZER;
@@ -45,12 +43,10 @@ void inicializarEstados()
     cola_susp_blocked = list_create();
     pcbs = list_create();
 
-    sem_init(&sem_procesos_en_ready, 0, 0);
     sem_init(&sem_procesos_en_blocked, 0, 0);
     sem_init(&sem_procesos_que_van_a_ready, 0, 0);
     sem_init(&respuesta_estimacion, 0, 0);
 
-    sem_init(&sem_cpu_disponible, 0, 0);
     sem_init(&sem_corto_plazo, 0, 0);
     sem_init(&sem_agregar_cpu, 0, 0);
 
@@ -177,7 +173,6 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
 
     if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS)
     {
-        // sem_post(&sem_procesos_en_ready);
         log_debug(logger, "Proceso %d abandono la CPU e hizo el post de ready", pcb->pid);
     }
 
@@ -198,7 +193,6 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     // log_info(logger, "PCB agegado a la nueva cola");
     if (pcb->estado_actual != EXEC && nuevo_estado == READY)
     {
-        sem_post(&sem_procesos_en_ready);
         sem_post(&sem_corto_plazo);
     }   
     log_info(logger, "## (%d) Pasa del estado %s al estado %s",
@@ -265,7 +259,6 @@ void agregar_a_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_ready);
         list_add(cola_ready, pcb);
         pthread_mutex_unlock(&mutex_ready);
-        sem_post(&sem_procesos_en_ready);
         break;
     case BLOCKED:
         pthread_mutex_lock(&mutex_blocked);
@@ -406,5 +399,4 @@ void marcar_cpu_como_libre(int socket_cliente, bool es_socket_dispatch)
     cpu->pcb_exec = NULL;
     pthread_mutex_unlock(&mutex_cpus);
     log_debug(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_cliente);
-    sem_post(&sem_cpu_disponible);
 }

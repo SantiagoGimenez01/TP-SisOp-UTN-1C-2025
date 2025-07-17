@@ -24,7 +24,6 @@ extern t_list* pcbs;
 
 extern sem_t sem_corto_plazo;
 
-extern sem_t sem_procesos_en_ready;
 extern sem_t sem_procesos_en_blocked;
 extern sem_t sem_procesos_que_van_a_ready;
 
@@ -39,7 +38,6 @@ extern pthread_mutex_t mutex_exit;
 extern pthread_mutex_t mutex_susp_ready;
 extern pthread_mutex_t mutex_susp_blocked;
 
-extern sem_t sem_cpu_disponible;
 extern pthread_mutex_t mutex_cpus;
 extern pthread_mutex_t mutex_pcbs;
 

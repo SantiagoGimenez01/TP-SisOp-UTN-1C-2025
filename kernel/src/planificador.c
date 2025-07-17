@@ -370,7 +370,6 @@ void *planificador_corto_plazo(void *arg)
         // Enfasis en llego, ya que no me interesa replanificar si ya chequee desalojo en los procesos de la lista (para eso espero a la CPU_LIBRE)
 
         // Esperamos que haya al menos un proceso en READY
-        // sem_wait(&sem_procesos_en_ready);
         // log_info(logger, "Pasa semaforo procesos en ready");
         // Si hay desalojo comprueba si el proceso que llego a ready requiere una replanificacion
 

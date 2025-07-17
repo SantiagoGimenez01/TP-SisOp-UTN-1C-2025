@@ -56,7 +56,6 @@ void *escuchar_interrupt(void *socket_servidor_void)
         log_debug(logger, "CPU ID recibido: %d en socket FD: %d", id_cpu, socket_cliente);
         agregarNuevaCpu(socket_cliente, id_cpu); // Terminamos de completar la nueva CPU
         log_debug(logger, "CPUs incompletas: %d, CPUs completas: %d", list_size(cpus_incompletas), list_size(cpus));
-        sem_post(&sem_cpu_disponible);
         t_modulo modulo_origen;
         recv(socket_cliente, &modulo_origen, sizeof(t_modulo), 0);
         comprobacionModulo(modulo_origen, MODULO_CPU_INTERRUPT, "CPU_INTERRUPT", operarInterrupt, socket_cliente);
@@ -143,7 +142,6 @@ void operarDispatch(int socket_cliente)
             log_debug(logger, "CPU en socket %d marco su disponibilidad", socket_cliente);
             marcar_cpu_como_libre(socket_cliente, true);
             sem_post(&sem_corto_plazo);
-            //sem_post(&sem_cpu_disponible);
             break;
 
         default:
@@ -196,7 +194,6 @@ void operarInterrupt(int socket_cliente)
             {
                 cambiar_estado(pcb, READY);
                 log_info(logger, "## (%i) - Desalojado por algoritmo SRT", pid);
-                sem_post(&sem_procesos_en_ready);
             }
             else
             {
@@ -305,7 +302,6 @@ void operarIo(int socket_cliente)
                     pcb->timer_flag = -1; // invalida el timer
                     // log_info(logger,"## (%d) El proceso ya se desbloqueo", pcb->pid);
                     cambiar_estado(pcb, READY); // ACA TENEMOS QUE RECORDAR QUE EL PROCESO PUDO PASAR A SUSP READY
-                    // sem_post(&sem_procesos_en_ready); Este creo que estaba de mas ya que ya se hace el sem_post cuando se agrega pcb a lista_ready
                     // log_info(logger, "Se hizo un semPost de ready");
                 }
                 else
