@@ -40,7 +40,7 @@ bool ejecutar_ciclo(uint32_t pid, uint32_t pc)
         if (check_interrupt())
         {
             log_debug(logger, "Proceso %d desalojado", pid);
-            if(inst->id == GOTO || inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC){
+            if(inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC){
                 pc++;
             }
             // Envia el estado del proceso al Kernel
@@ -240,7 +240,7 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             {
                 log_info(logger, "## PID: %d - Cache Hit - Pagina: %d", pid, nro_pagina);
                 escribir_en_cache(nro_pagina, desplazamiento, datos);
-                entrada_cache->modificado = true;
+                //entrada_cache->modificado = true;
                 break;
             }
             else
