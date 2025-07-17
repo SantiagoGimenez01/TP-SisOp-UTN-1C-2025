@@ -43,6 +43,19 @@ bool ejecutar_ciclo(uint32_t pid, uint32_t pc)
             if(inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC){
                 pc++;
             }
+
+            if(inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC || inst->id == GOTO){
+
+                if (cache_paginas != NULL)
+                {
+                    actualizar_paginas_modificadas_en_memoria(pid);
+                    limpiar_cache();
+                }
+                if (tlb != NULL) {
+                    limpiar_tlb();
+                }      
+            }
+
             // Envia el estado del proceso al Kernel
             enviar_estado_proc_kernel(pid, pc);
             enviar_opcode(CPU_LIBRE, socket_dispatch);
