@@ -24,10 +24,8 @@ extern t_list* pcbs;
 
 extern sem_t sem_corto_plazo;
 
-extern sem_t sem_procesos_en_new;
 extern sem_t sem_procesos_en_ready;
 extern sem_t sem_procesos_en_blocked;
-extern sem_t sem_procesos_en_suspReady;
 extern sem_t sem_procesos_que_van_a_ready;
 
 extern sem_t respuesta_estimacion;
