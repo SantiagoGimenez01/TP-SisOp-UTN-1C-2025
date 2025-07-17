@@ -18,9 +18,16 @@ int main(int argc, char *argv[])
     }
     id_cpu = atoi(argv[1]);
     pthread_mutex_init(&mutex_flag_desalojo, NULL);
+
     char *path_config = string_new();
-    string_append_with_format(&path_config, "cpu%s.config", string_itoa(id_cpu));
+    char *id_cpu_str = string_itoa(id_cpu);
+
+    string_append_with_format(&path_config, "cpu%s.config", id_cpu_str);
+    free(id_cpu_str);
+
     cargarConfiguracionCPU(path_config, id_cpu, &configCPU, &logger);
+    free(path_config);
+
     establecerConexiones(id_cpu);
     escucharOperaciones();
 
