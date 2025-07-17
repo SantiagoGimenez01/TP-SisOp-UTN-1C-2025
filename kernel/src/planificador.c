@@ -428,8 +428,8 @@ void *planificador_corto_plazo(void *arg)
                     }
                     log_debug(logger, "NO HAY DESALOJO");
                     log_debug(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", pcb->pid, cpu->id, procesoEntrante->pid);
-                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Timer_exec %d", pcb->pid, estimacion_restante,
-                              procesoEntrante->pid, procesoEntrante->timer_exec);
+                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Estimacion_Rafaga %d", pcb->pid, estimacion_restante,
+                              procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     continue;
                 }
             }
@@ -561,13 +561,12 @@ void enviar_proceso(t_cpu *cpu, t_pcb *pcb)
     agregar_int_a_paquete(paquete, pcb->pid);
     agregar_int_a_paquete(paquete, pcb->pc);
     agregar_int_a_paquete(paquete, pcb->estimacion_rafaga);
-    agregar_int_a_paquete(paquete, pcb->timer_exec);
 
     enviar_paquete(paquete, cpu->socket_dispatch);
     eliminar_paquete(paquete);
 
-    log_debug(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d, Timer Exec=%d",
-              cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga, pcb->timer_exec);
+    log_debug(logger, "Enviado PCB al CPU %d: PID=%d, PC=%d, Estimacion=%d",
+              cpu->id, pcb->pid, pcb->pc, pcb->estimacion_rafaga);
 }
 
 void agregar_double_a_paquete(t_paquete *paquete, double valor)

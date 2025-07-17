@@ -175,10 +175,9 @@ void operarInterrupt(int socket_cliente)
             log_debug(logger, "Se recibio DESALOJAR_PROCESO desde CPU (socket %d)", socket_cliente);
 
             t_paquete *paquete = recibir_paquete(socket_cliente);
-            uint32_t pid, pc, timer_exec;
+            uint32_t pid, pc;
             memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
             memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
-            memcpy(&timer_exec, paquete->buffer->stream + sizeof(uint32_t) + sizeof(uint32_t), sizeof(uint32_t));
 
             eliminar_paquete(paquete);
 
@@ -192,7 +191,6 @@ void operarInterrupt(int socket_cliente)
             pthread_mutex_lock(&pcb->mutex_pcb);  
 
             pcb->pc = pc;
-            pcb->timer_exec = timer_exec;
 
             if (pcb->estado_actual == EXEC)
             {
