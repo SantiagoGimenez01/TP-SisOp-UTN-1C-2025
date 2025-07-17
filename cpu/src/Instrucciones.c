@@ -40,7 +40,8 @@ bool ejecutar_ciclo(uint32_t pid, uint32_t pc)
         if (check_interrupt())
         {
             log_debug(logger, "Proceso %d desalojado", pid);
-            if(inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC){
+            if (inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC)
+            {
                 pc++;
             }
 
@@ -143,7 +144,9 @@ t_instruccion *decode_instruccion(char *linea)
 
 bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
 {
-    log_info(logger, "## PID: %i - Ejecutando: %s - (%s)", pid, nombre_instruccion(inst), nombre_parametros(inst));
+     char* str_parametro = nombre_parametros(inst);
+    log_info(logger, "## PID: %i - Ejecutando: %s - (%s)", pid, nombre_instruccion(inst), str_parametro);
+    free(str_parametro);
     switch (inst->id)
     {
     case NOOP:
@@ -229,7 +232,7 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             log_info(logger, "## PID: %i - Acción: LEER - Dirección Física: (Pagina: %i, Offset: %i) - Valor: %s", pid, dir->numero_pagina, dir->desplazamiento, contenido);
             log_debug(logger, "Contenido leido desde Memoria: %s", contenido);
         }
-        // free(contenido);
+        free(contenido);
         free(dir->entradas_niveles);
         free(dir);
         break;
@@ -253,7 +256,7 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             {
                 log_info(logger, "## PID: %d - Cache Hit - Pagina: %d", pid, nro_pagina);
                 escribir_en_cache(nro_pagina, desplazamiento, datos);
-                //entrada_cache->modificado = true;
+                // entrada_cache->modificado = true;
                 break;
             }
             else
