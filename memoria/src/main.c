@@ -8,8 +8,9 @@ int frames_libres;
 void* memoria_fisica;
 t_list* procesos_en_memoria;
 t_list* paginas_en_swap;
-t_bitarray* bitmap_swap = NULL;
+t_bitarray* bitmap_swap;
 t_config* config_global;
+char *buffer_bitmap_swap;
 int main(int argc, char* argv[]) {
     signal(SIGINT, handler_sigint);  
     cargarConfiguracionMemoria("memoria.config", &configMEMORIA, &logger);

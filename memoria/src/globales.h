@@ -14,6 +14,7 @@ extern t_list* procesos_en_memoria;
 extern void* memoria_fisica;
 extern t_list* paginas_en_swap;
 extern t_bitarray* bitmap_swap;
+extern char *buffer_bitmap_swap;
 typedef struct {
     uint32_t marco;
     bool presencia;

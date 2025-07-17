@@ -1,5 +1,4 @@
 #include "swapDump.h"
-static int slot_a_verificar;
 
 bool generar_dump(t_proceso_en_memoria* proceso) {
     // obtener timestamp
@@ -55,20 +54,21 @@ void escribir_paginas_recursivamente(t_tabla_nivel* tabla, int nivel_actual, FIL
 
 
 
-bool slot_ocupado(void* elemento) {
-    t_registro_swap* reg = (t_registro_swap*) elemento;
-    return reg->slot == slot_a_verificar;
-}
-
 int obtener_slot_libre() {
-    for (int i = 0;; i++) {
-        slot_a_verificar = i;
-        if (!list_any_satisfy(paginas_en_swap, slot_ocupado)) {
+    if (bitmap_swap == NULL) {
+        log_error(logger, "bitmap_swap es NULL al buscar slot libre");
+        return -1;
+    }
+
+    int max = bitarray_get_max_bit(bitmap_swap);
+    for (int i = 0; i < max; i++) {
+        if (!bitarray_test_bit(bitmap_swap, i)) {
+            bitarray_set_bit(bitmap_swap, i);
             return i;
         }
     }
+    return -1;
 }
-
 
 void suspender_proceso(t_proceso_en_memoria* proceso) {
     FILE* swap = fopen(configMEMORIA.path_swapfile, "r+b");
@@ -191,7 +191,9 @@ int desuspender_proceso(t_proceso_en_memoria* proceso) {
             log_trace(logger, "Entrada actualizada: nro_pagina=%d marco=%d presencia=%d",
           r->nro_pagina, entrada->marco, entrada->presencia);
 
+            bitarray_clean_bit(bitmap_swap, r->slot);
             list_remove_and_destroy_element(paginas_en_swap, i, free);
+            
         } else {
             i++;
         }

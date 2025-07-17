@@ -187,64 +187,59 @@ void liberar_proceso_en_memoria(t_proceso_en_memoria *proceso)
         log_trace(logger, "Frame %d: %d", i, bitarray_test_bit(bitmap_frames, i));
     }
 }
-
 void crear_swapfile()
 {
-    FILE *f = fopen(configMEMORIA.path_swapfile, "r+b");
-    if (f)
-    {
-        fclose(f);
-        return;
-    }
-
     int frames_en_ram = configMEMORIA.tam_memoria / configMEMORIA.tam_pagina;
     int slots_en_swap = frames_en_ram * MULTIPLICADOR_SWAP;
     size_t tamanio_swap = slots_en_swap * configMEMORIA.tam_pagina;
 
-    void *buffer = calloc(1, tamanio_swap);
-    f = fopen(configMEMORIA.path_swapfile, "w+b");
+    FILE *f = fopen(configMEMORIA.path_swapfile, "r+b");
     if (!f)
     {
-        log_error(logger, "No se pudo crear swapfile.bin");
-        exit(EXIT_FAILURE);
+        void *buffer = calloc(1, tamanio_swap);
+        f = fopen(configMEMORIA.path_swapfile, "w+b");
+        if (!f)
+        {
+            log_error(logger, "No se pudo crear swapfile.bin");
+            exit(EXIT_FAILURE);
+        }
+        fwrite(buffer, 1, tamanio_swap, f);
+        free(buffer);
+        fclose(f);
+
+        log_debug(logger, "Archivo swapfile.bin creado con %d slots (tamaño total %zu bytes)", slots_en_swap, tamanio_swap);
     }
-    fwrite(buffer, 1, tamanio_swap, f);
-    free(buffer);
-    fclose(f);
+    else
+    {
+        fclose(f);
+        log_debug(logger, "Archivo swapfile.bin ya existe, se reutiliza");
+    }
 
-    log_debug(logger, "Archivo swapfile.bin creado con %d slots (tamaño total %zu bytes)", slots_en_swap, tamanio_swap);
 
-    int tamanio_bitmap_bytes = slots_en_swap / 8;
-    char *bitmap_data = calloc(tamanio_bitmap_bytes, sizeof(char));
-
-    bitmap_swap = bitarray_create_with_mode(bitmap_data, tamanio_bitmap_bytes, LSB_FIRST);
+    int tamanio_bitmap_bytes = (slots_en_swap + 7) / 8;
+    buffer_bitmap_swap = calloc(tamanio_bitmap_bytes, sizeof(char)); 
+    bitmap_swap = bitarray_create_with_mode(buffer_bitmap_swap, tamanio_bitmap_bytes, LSB_FIRST);
 
     log_debug(logger, "Bitmap de SWAP creado con %d bits (%d bytes)", slots_en_swap, tamanio_bitmap_bytes);
 }
+
 
 void finalizar_memoria(){
 
     log_info(logger, "Finalizando módulo MEMORIA");
 
-    // Logger y config
-    
     config_destroy(config_global);
-
- 
     
     free(memoria_fisica);
 
     liberar_todos_los_procesos();
 
-
-       // Bitmap
     bitarray_destroy(bitmap_frames);
-    if (bitmap_swap != NULL) {
-    // Asumiendo que bitmap_swap->bitarray es el puntero al buffer que se 'calloc'eó
-    free((char*)bitmap_swap->bitarray);
-    bitarray_destroy(bitmap_swap); // Esto libera la estructura del bitarray en sí
-    }
     free(buffer_bitmap);
+    
+    bitarray_destroy(bitmap_swap);   
+    free(buffer_bitmap_swap); 
+
     log_destroy(logger);
 }
 

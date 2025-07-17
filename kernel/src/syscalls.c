@@ -84,7 +84,7 @@ void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
         log_warning(logger, "IO INEXISTENTE");
         enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
         log_warning(logger, "Proceso %d solicita IO '%s' inexistente. Terminando proceso.", pcb->pid, nombre_io);
-        cambiar_estado(pcb, EXIT);
+        cambiar_estado(pcb, EXIT_PROCESS);
         finalizar_proceso(pcb);
         return;
     }
