@@ -519,10 +519,10 @@ void *timer_bloqueo(void *arg)
 
     log_info(logger, "##(%d) - Timer iniciado", pcb->pid);
 
-    long useconds_a_esperar = (long)configKERNEL.tiempo_suspension * 1000; // ms a us
-    long useconds_transcurridos = 0;
+    long ms_a_esperar = (long)configKERNEL.tiempo_suspension;
+    long mseconds_transcurridos = 0;
 
-    while (useconds_transcurridos < useconds_a_esperar)
+    while (mseconds_transcurridos < ms_a_esperar)
     {
         pthread_mutex_lock(&pcb->mutex_pcb);
         if (pcb->timer_flag == -1)
@@ -533,8 +533,8 @@ void *timer_bloqueo(void *arg)
         }
         pthread_mutex_unlock(&pcb->mutex_pcb);
 
-        usleep(1);
-        useconds_transcurridos += 1;
+        usleep(1 * 1000);
+        mseconds_transcurridos += 1;
     }
     pthread_mutex_lock(&pcb->mutex_pcb);
 
@@ -554,7 +554,7 @@ void *timer_bloqueo(void *arg)
     else
     {
         log_debug(logger, "##(%d) El proceso ya se desbloqueó antes o timer invalidado (timer_flag: %d, estado: %d)",
-                 pcb->pid, pcb->timer_flag, pcb->estado_actual);
+                  pcb->pid, pcb->timer_flag, pcb->estado_actual);
     }
 
     pthread_mutex_unlock(&pcb->mutex_pcb);
