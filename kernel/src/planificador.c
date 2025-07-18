@@ -414,7 +414,10 @@ void *planificador_corto_plazo(void *arg)
                     log_debug(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", pcb->pid, cpu->id, procesoEntrante->pid);
                     log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", pcb->pid, estimacion_restante,
                               procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
+                    pthread_mutex_lock(&cpu->mutex_cpu);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
+                    pthread_mutex_unlock(&cpu->mutex_cpu);
+
                     // cpu->pcb_exec = NULL;
                 }
                 else
@@ -450,18 +453,20 @@ void *planificador_corto_plazo(void *arg)
         {                            // Si el algoritmo es con desalojo y la cpu tiene un proceso en ejecucion...
             proceso = cpu->pcb_exec; // Significa que no hubo desalojo, por lo que el proceso seguira siendo el mismo
         }
-
+        pthread_mutex_lock(&cpu->mutex_cpu);
         // Si la cpu no tiene proceso la liberamos
         if (!proceso)
         {
             cpu->disponible = true;
             log_debug(logger, "No hay proceso disponible para ejecutar. CPU %d queda libre", cpu->id);
+            pthread_mutex_unlock(&cpu->mutex_cpu);
             continue;
         }
 
         if (cpu == NULL)
         {
             log_error(logger, "CPU NULL en planificador de corto plazo");
+            pthread_mutex_unlock(&cpu->mutex_cpu);
             continue;
         }
 
@@ -476,6 +481,7 @@ void *planificador_corto_plazo(void *arg)
             enviar_proceso(cpu, proceso);
             log_debug(logger, "Proceso %d enviado a ejecucion en CPU %d", proceso->pid, cpu->id);
         }
+        pthread_mutex_unlock(&cpu->mutex_cpu);
     }
 
     return NULL;
@@ -498,27 +504,46 @@ void *planificador_mediano_plazo(void *arg)
         pcb->timer_flag = 1;
         // ACA INICIA EL TIMER DE SUSPENSION!!!!
         pthread_t hilo_timer;
+        pcb->hilo_timer = hilo_timer;
         pthread_create(&hilo_timer, NULL, timer_bloqueo, pcb);
-        pthread_detach(hilo_timer);
+        pthread_join(hilo_timer, NULL);
     }
 
     return NULL;
 }
 
+// Refactored timer function
 void *timer_bloqueo(void *arg)
 {
     t_pcb *pcb = (t_pcb *)arg;
 
-    log_info(logger, "##(%d) Comenzando timer...", pcb->pid);
-    usleep(configKERNEL.tiempo_suspension * 1000); // Espera
-    // Si todavia sigue bloqueado lo suspende
+    log_info(logger, "##(%d) - Timer iniciado", pcb->pid);
+
+    long useconds_a_esperar = (long)configKERNEL.tiempo_suspension * 1000; // ms a us
+    long useconds_transcurridos = 0;
+
+    while (useconds_transcurridos < useconds_a_esperar)
+    {
+        pthread_mutex_lock(&pcb->mutex_pcb);
+        if (pcb->timer_flag == -1)
+        {
+            pthread_mutex_unlock(&pcb->mutex_pcb);
+            log_info(logger, "##(%d) - Timer invalidado.", pcb->pid);
+            return NULL;
+        }
+        pthread_mutex_unlock(&pcb->mutex_pcb);
+
+        usleep(1);
+        useconds_transcurridos += 1;
+    }
     pthread_mutex_lock(&pcb->mutex_pcb);
+
     if (pcb->estado_actual == BLOCKED && pcb->timer_flag > 0)
     {
         bool resultado = solicitar_suspender_proceso(pcb->pid);
         if (resultado)
         {
-            log_info(logger, "##(%d) Suspendiendose...", pcb->pid);
+            log_debug(logger, "(%d) Suspendiendose...", pcb->pid);
             cambiar_estado(pcb, SUSP_BLOCKED);
         }
         else
@@ -528,10 +553,13 @@ void *timer_bloqueo(void *arg)
     }
     else
     {
-        log_info(logger, "##(%d) El proceso ya se desbloqueó antes, timer invalido", pcb->pid);
+        log_debug(logger, "##(%d) El proceso ya se desbloqueó antes o timer invalidado (timer_flag: %d, estado: %d)",
+                 pcb->pid, pcb->timer_flag, pcb->estado_actual);
     }
 
     pthread_mutex_unlock(&pcb->mutex_pcb);
+
+    log_info(logger, "##(%d) - Timer finalizado.", pcb->pid);
     return NULL;
 }
 

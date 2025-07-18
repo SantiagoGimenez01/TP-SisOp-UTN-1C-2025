@@ -320,7 +320,6 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             escribir_en_memoria(pid, dir, marco, datos);
             log_info(logger, "## PID: %i - Acción: ESCRIBIR - Dirección Física: (Pagina: %i, Offset: %i) - Valor: %s", pid, dir->numero_pagina, dir->desplazamiento, datos);
         }
-        free(datos);
         free(dir->entradas_niveles);
         free(dir);
         break;

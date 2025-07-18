@@ -19,6 +19,8 @@ extern int cantidad_niveles;
 extern pthread_mutex_t mutex_flag_desalojo;
 extern bool flag_desalojo;
 
+extern pthread_mutex_t mutex_manejando_interrupcion;
+
 typedef struct
 {
     t_instruccion_id id;

@@ -19,7 +19,8 @@ typedef struct {
     t_pcb* pcb_exec;
     int socket_dispatch;      
     int socket_interrupt;    
-    int disponible;          
+    int disponible;    
+    pthread_mutex_t mutex_cpu;    
 } t_cpu;
 
 typedef struct {

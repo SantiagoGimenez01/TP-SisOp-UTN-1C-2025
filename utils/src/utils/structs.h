@@ -100,6 +100,7 @@ typedef struct {
     char* archivo_pseudocodigo;
     int tiempoIO;
     int timer_flag;
+    pthread_t hilo_timer;
     pthread_mutex_t mutex_pcb;
 } t_pcb;
 

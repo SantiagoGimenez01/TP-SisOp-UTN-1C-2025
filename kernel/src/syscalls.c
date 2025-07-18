@@ -2,6 +2,8 @@
 
 void procesar_syscall(t_paquete *paquete, int socket_cpu)
 {
+    t_cpu *cpu = obtener_cpu_por_socket_dispatch(socket_cpu);
+
     int offset = 0;
     t_instruccion_id syscall_id;
     memcpy(&syscall_id, paquete->buffer->stream + offset, sizeof(int));
@@ -16,7 +18,7 @@ void procesar_syscall(t_paquete *paquete, int socket_cpu)
 
     t_pcb *pcb = buscar_pcb_por_pid(pid);
     pcb->pc = pc;
-
+    pthread_mutex_lock(&cpu->mutex_cpu);
     log_debug(logger, "Proceso %d devuelto a Kernel desde socket CPU %d. Motivo: %s", pcb->pid, socket_cpu, nombre_syscall(syscall_id));
     log_info(logger, "## (%i) - Solicitó syscall: %s", pcb->pid, nombre_syscall(syscall_id));
     switch (syscall_id)
@@ -73,6 +75,7 @@ void procesar_syscall(t_paquete *paquete, int socket_cpu)
         log_error(logger, "Syscall desconocida recibida: %d", syscall_id);
         break;
     }
+    pthread_mutex_unlock(&cpu->mutex_cpu);
 }
 
 void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
@@ -92,7 +95,7 @@ void atender_syscall_io(t_pcb *pcb, char *nombre_io, int tiempo, int socket_cpu)
     cambiar_estado(pcb, BLOCKED);
 
     // log_info(logger, "El proceso %d ahora esta bloqueado por %d segundos", pcb->pid, tiempo);
-    
+
     // log_info(logger, "El proceso %d se desalojo", pcb->pid);
 
     usar_o_encolar_io(dispositivo, pcb, tiempo, socket_cpu);
@@ -137,26 +140,29 @@ t_io *buscar_io_menos_cargado_por_nombre(char *nombre_io)
     t_io *menos_cargado = NULL;
     int menor_cola = -1;
 
-    for (int i = 0; i < list_size(ios); i++) {
+    for (int i = 0; i < list_size(ios); i++)
+    {
         t_io *dispositivo = list_get(ios, i);
-        if (strcmp(dispositivo->nombre, nombre_io) == 0) {
+        if (strcmp(dispositivo->nombre, nombre_io) == 0)
+        {
             int cantidad_en_cola = queue_size(dispositivo->cola_procesos);
 
-            if (menos_cargado == NULL || cantidad_en_cola < menor_cola) {
+            if (menos_cargado == NULL || cantidad_en_cola < menor_cola)
+            {
                 menos_cargado = dispositivo;
                 menor_cola = cantidad_en_cola;
             }
         }
     }
 
-    if (menos_cargado != NULL) {
+    if (menos_cargado != NULL)
+    {
         log_debug(logger, "Se seleccionó IO '%s' con socket %d y cola de tamaño %d.",
                   menos_cargado->nombre, menos_cargado->socket, menor_cola);
     }
 
     return menos_cargado;
 }
-
 
 int buscar_index_io_por_socket(int socket)
 {
@@ -188,13 +194,14 @@ void usar_o_encolar_io(t_io *dispositivo, t_pcb *pcb, int tiempo, int socket_cpu
 {
     pthread_mutex_lock(&dispositivo->mutex);
 
-    if (dispositivo->disponible) {
-        
+    if (dispositivo->disponible)
+    {
+
         dispositivo->disponible = false;
         dispositivo->pid_actual = pcb->pid;
 
         log_debug(logger, "Proceso %d usando IO %s inmediatamente con socket %d.", pcb->pid, dispositivo->nombre, dispositivo->socket);
-        if(socket_cpu != -1)
+        if (socket_cpu != -1)
             enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
         enviar_opcode(SOLICITUD_IO, dispositivo->socket);
         t_paquete *paquete = crear_paquete();
@@ -202,25 +209,26 @@ void usar_o_encolar_io(t_io *dispositivo, t_pcb *pcb, int tiempo, int socket_cpu
         agregar_int_a_paquete(paquete, tiempo);
         enviar_paquete(paquete, dispositivo->socket);
         eliminar_paquete(paquete);
-    } else {
+    }
+    else
+    {
         pcb->tiempoIO = tiempo;
         queue_push(dispositivo->cola_procesos, pcb);
-        if(socket_cpu != -1)
+        if (socket_cpu != -1)
             enviar_opcode(DESALOJAR_PROCESO, socket_cpu);
         log_debug(logger, "Proceso %d encolado esperando IO %s con socket %d.", pcb->pid, dispositivo->nombre, dispositivo->socket);
 
         // Log de la cola entera
         log_debug(logger, "Cola actual de IO %s con socket %d:", dispositivo->nombre, dispositivo->socket);
-        for (int i = 0; i < list_size(dispositivo->cola_procesos->elements); i++) {
+        for (int i = 0; i < list_size(dispositivo->cola_procesos->elements); i++)
+        {
             t_pcb *p = list_get(dispositivo->cola_procesos->elements, i);
             log_trace(logger, " -> PID: %d, estado: %s", p->pid, nombre_estado(p->estado_actual));
         }
-
     }
 
     pthread_mutex_unlock(&dispositivo->mutex);
 }
-
 
 void finalizar_proceso(t_pcb *pcb)
 {
@@ -236,7 +244,6 @@ void finalizar_proceso(t_pcb *pcb)
     remover_pcb(pcb);
 
     sem_post(&sem_largo_plazo); // OJO CON ESTO, NO ME TENGO QUE OLVIDAR DE QUE PRIMERO VAN LOS SUSPREADY
-
 }
 
 void loguear_metricas_estado(t_pcb *pcb)

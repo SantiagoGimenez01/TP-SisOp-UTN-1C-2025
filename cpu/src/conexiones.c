@@ -130,11 +130,12 @@ void *escuchar_interrupt(void *arg)
         {
         case INTERRUPCION:
             log_debug(logger, "Se recibio una INTERRUPCION desde Kernel");
-
+            pthread_mutex_lock(&mutex_manejando_interrupcion);
             // Marcamos el flag de desalojo para interrumpir el ciclo
             pthread_mutex_lock(&mutex_flag_desalojo);
             flag_desalojo = true;
             pthread_mutex_unlock(&mutex_flag_desalojo);
+            pthread_mutex_unlock(&mutex_manejando_interrupcion);
 
             //enviar_opcode(CPU_LIBRE, socket_interrupt);
 

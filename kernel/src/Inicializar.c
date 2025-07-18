@@ -32,7 +32,6 @@ pthread_mutex_t mutex_cpus = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_pcbs;
 pthread_mutex_t mutex_ios;
 
-
 void inicializarEstados()
 {
     cola_new = list_create();
@@ -58,7 +57,6 @@ void inicializarEstados()
     pthread_mutex_init(&mutex_blocked, NULL);
     pthread_mutex_init(&mutex_pcbs, NULL);
     pthread_mutex_init(&mutex_ios, NULL);
-
 }
 
 void agregarNuevaCpuInc(int socket_cliente, int id_cpu)
@@ -93,6 +91,7 @@ void agregarNuevaCpu(int socket_interrupt, int id_cpu)
     if (cpu != NULL)
     {
         cpu->socket_interrupt = socket_interrupt;
+        pthread_mutex_init(&cpu->mutex_cpu, NULL);
         list_add(cpus, cpu);
         list_remove_element(cpus_incompletas, cpu);
         log_debug(logger, "CPU ID %d completa (DISPATCH + INTERRUPT)", cpu->id);
@@ -170,7 +169,6 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     // Esto lo agregue ya que se hace un sem_wait por cada proceso que entra, entonces si entran 3, ninguno ejecuta por la prioridad (pero todos hacen en sem:wait), y el que esta
     // ejecutando termina, el semaforo de procesos en ready no va a dejar avanzar (igual no estaria funcionando xd)
 
-
     if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0 && pcb->estado_actual == EXEC && nuevo_estado == EXIT_PROCESS)
     {
         log_debug(logger, "Proceso %d abandono la CPU e hizo el post de ready", pcb->pid);
@@ -194,9 +192,9 @@ void cambiar_estado(t_pcb *pcb, t_estado_proceso nuevo_estado)
     if (pcb->estado_actual != EXEC && nuevo_estado == READY)
     {
         sem_post(&sem_corto_plazo);
-    }   
+    }
     log_info(logger, "## (%d) Pasa del estado %s al estado %s",
-     pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
+             pcb->pid, nombre_estado(metrica->estado), nombre_estado(nuevo_estado));
 }
 
 int calcularEstimacion(t_pcb *pcb)
@@ -394,9 +392,10 @@ void marcar_cpu_como_libre(int socket_cliente, bool es_socket_dispatch)
     {
         cpu = obtener_cpu_por_socket_interrupt(socket_cliente);
     }
-    pthread_mutex_lock(&mutex_cpus);
+    pthread_mutex_lock(&cpu->mutex_cpu);
     cpu->disponible = true;
     cpu->pcb_exec = NULL;
-    pthread_mutex_unlock(&mutex_cpus);
+    pthread_mutex_unlock(&cpu->mutex_cpu);
+
     log_debug(logger, "CPU %d marcada como disponible (socket %d)", cpu->id, socket_cliente);
 }
