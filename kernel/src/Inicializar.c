@@ -13,7 +13,7 @@ t_list *cola_susp_blocked = NULL;
 t_list *pcbs = NULL;
 
 sem_t sem_procesos_en_blocked;
-sem_t sem_procesos_que_van_a_ready;
+sem_t sem_largo_plazo;
 
 sem_t respuesta_estimacion;
 
@@ -44,7 +44,7 @@ void inicializarEstados()
     pcbs = list_create();
 
     sem_init(&sem_procesos_en_blocked, 0, 0);
-    sem_init(&sem_procesos_que_van_a_ready, 0, 0);
+    sem_init(&sem_largo_plazo, 0, 0);
     sem_init(&respuesta_estimacion, 0, 0);
 
     sem_init(&sem_corto_plazo, 0, 0);
@@ -253,7 +253,7 @@ void agregar_a_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_new);
         list_add(cola_new, pcb);
         pthread_mutex_unlock(&mutex_new);
-        sem_post(&sem_procesos_que_van_a_ready);
+        sem_post(&sem_largo_plazo);
         break;
     case READY:
         pthread_mutex_lock(&mutex_ready);
@@ -270,13 +270,13 @@ void agregar_a_cola(t_pcb *pcb, t_estado_proceso estado)
         pthread_mutex_lock(&mutex_susp_ready);
         list_add(cola_susp_ready, pcb);
         pthread_mutex_unlock(&mutex_susp_ready);
-        sem_post(&sem_procesos_que_van_a_ready);
+        sem_post(&sem_largo_plazo);
         break;
     case SUSP_BLOCKED:
         pthread_mutex_lock(&mutex_susp_blocked);
         list_add(cola_susp_blocked, pcb);
         pthread_mutex_unlock(&mutex_susp_blocked);
-        sem_post(&sem_procesos_que_van_a_ready);
+        sem_post(&sem_largo_plazo);
         break;
     case EXIT_PROCESS:
         pthread_mutex_lock(&mutex_exit);
