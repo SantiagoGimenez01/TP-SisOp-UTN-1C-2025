@@ -21,4 +21,5 @@ bool liberar_en_memoria(uint32_t pid);
 void remover_pcb(t_pcb* pcb);
 void loguear_metricas_estado(t_pcb* pcb);
 t_io* buscar_io_por_socket(int socket);
+int buscar_index_io_por_socket(int socket);
 #endif 

@@ -412,7 +412,7 @@ void *planificador_corto_plazo(void *arg)
                 { // El proceso entrante tiene mas prioridad q el q ejecuta
                     log_debug(logger, "HAY DESALOJO");
                     log_debug(logger, "Desalojando proceso %d en CPU %d para ejecutar proceso %d", pcb->pid, cpu->id, procesoEntrante->pid);
-                    log_debug(logger, "Proceso %d en CPU -> Estimacion: %d | Proceso %d en READY -> Estimacion %d", pcb->pid, estimacion_restante,
+                    log_debug(logger, "Proceso %d en CPU -> Estimacion: %ld | Proceso %d en READY -> Estimacion %d", pcb->pid, estimacion_restante,
                               procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     pthread_mutex_lock(&cpu->mutex_cpu);
                     enviar_opcode(INTERRUPCION, cpu->socket_interrupt);
@@ -430,7 +430,7 @@ void *planificador_corto_plazo(void *arg)
                     }
                     log_debug(logger, "NO HAY DESALOJO");
                     log_debug(logger, "Proceso %d en CPU %d requiere menos tiempo que proceso %d. NO DESALOJA", pcb->pid, cpu->id, procesoEntrante->pid);
-                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %d | Proceso %d en READY -> Estimacion_Rafaga %d", pcb->pid, estimacion_restante,
+                    log_debug(logger, "Proceso %d en CPU -> Timer_exec: %ld | Proceso %d en READY -> Estimacion_Rafaga %d", pcb->pid, estimacion_restante,
                               procesoEntrante->pid, procesoEntrante->estimacion_rafaga);
                     continue;
                 }

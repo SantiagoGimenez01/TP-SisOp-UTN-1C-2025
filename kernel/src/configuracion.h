@@ -7,4 +7,4 @@
 
 void cargarConfiguracionKernel(char* path, config_kernel_t* configKernel, t_log** logger);
 
-#endif S
+#endif
