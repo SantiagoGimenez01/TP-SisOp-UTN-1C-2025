@@ -1,6 +1,7 @@
 #include "main.h"
 
 config_cpu_t configCPU;
+t_config *config;
 t_log *logger;
 int id_cpu;
 int socket_memoria = -1;
@@ -8,6 +9,16 @@ int socket_dispatch = -1;
 int socket_interrupt = -1;
 bool flag_desalojo = false;
 pthread_mutex_t mutex_flag_desalojo;
+
+void handler_sigint(int signo)
+{
+    log_info(logger, "SIGINT recibido, liberando recursos...");
+    log_destroy(logger);
+    config_destroy(config);
+    limpiar_cache();
+    limpiar_tlb();
+    exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char *argv[])
 {
@@ -30,6 +41,7 @@ int main(int argc, char *argv[])
 
     establecerConexiones(id_cpu);
     escucharOperaciones();
+    signal(SIGINT, handler_sigint);
 
     pause();
 

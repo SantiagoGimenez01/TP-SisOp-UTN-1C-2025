@@ -45,16 +45,18 @@ bool ejecutar_ciclo(uint32_t pid, uint32_t pc)
                 pc++;
             }
 
-            if(inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC || inst->id == GOTO){
+            if (inst->id == NOOP || inst->id == WRITE || inst->id == READ || inst->id == INIT_PROC || inst->id == GOTO)
+            {
 
                 if (cache_paginas != NULL)
                 {
                     actualizar_paginas_modificadas_en_memoria(pid);
                     limpiar_cache();
                 }
-                if (tlb != NULL) {
+                if (tlb != NULL)
+                {
                     limpiar_tlb();
-                }      
+                }
             }
 
             // Envia el estado del proceso al Kernel
@@ -144,7 +146,7 @@ t_instruccion *decode_instruccion(char *linea)
 
 bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
 {
-     char* str_parametro = nombre_parametros(inst);
+    char *str_parametro = nombre_parametros(inst);
     log_info(logger, "## PID: %i - Ejecutando: %s - (%s)", pid, nombre_instruccion(inst), str_parametro);
     free(str_parametro);
     switch (inst->id)
@@ -173,6 +175,8 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
                 contenido = extraer_fragmento_con_desplazamiento(entrada_cache->contenido, desplazamiento, tamanio);
                 log_debug(logger, "Contenido leido desde Cache: %s", contenido);
                 free(contenido);
+                free(dir->entradas_niveles);
+                free(dir);
                 break;
             }
             else
@@ -223,7 +227,6 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             log_debug(logger, "Contenido leido desde Memoria: %s", contenido);
             agregar_a_cache(pid, dir, marco, pagina_completa);
             log_info(logger, "## PID: %d - Cache Add - Pagina: %d", pid, nro_pagina);
-            // free(pagina_completa);
         }
         else
         {
@@ -257,6 +260,8 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
                 log_info(logger, "## PID: %d - Cache Hit - Pagina: %d", pid, nro_pagina);
                 escribir_en_cache(nro_pagina, desplazamiento, datos);
                 // entrada_cache->modificado = true;
+                free(dir->entradas_niveles);
+                free(dir);
                 break;
             }
             else
@@ -315,6 +320,7 @@ bool ejecutar_instruccion(t_instruccion *inst, uint32_t pid, uint32_t *pc)
             escribir_en_memoria(pid, dir, marco, datos);
             log_info(logger, "## PID: %i - Acción: ESCRIBIR - Dirección Física: (Pagina: %i, Offset: %i) - Valor: %s", pid, dir->numero_pagina, dir->desplazamiento, datos);
         }
+        free(datos);
         free(dir->entradas_niveles);
         free(dir);
         break;

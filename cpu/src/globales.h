@@ -4,6 +4,7 @@
 #include "utils/libs/config.h"
 #include "utils/libs/logger.h"
 #include "utils/paquete.h"
+extern t_config *config;
 extern config_cpu_t configCPU;
 extern t_log *logger;
 // Sockets globales

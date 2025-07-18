@@ -2,7 +2,7 @@
 
 void cargarConfiguracionCPU(char* path, int id_cpu, config_cpu_t* configCPU, t_log** logger) {
     // Carga config
-    t_config* config = iniciar_config(path);
+    config = iniciar_config(path);
     *configCPU = load_config_cpu(config);
 
     // Crea log file
