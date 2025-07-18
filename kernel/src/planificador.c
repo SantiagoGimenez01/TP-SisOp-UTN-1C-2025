@@ -240,7 +240,7 @@ void *planificador_largo_plazo(void *arg)
 
     while (1)
     {
-        sem_wait(&sem_procesos_que_van_a_ready);
+        sem_wait(&sem_largo_plazo);
         log_debug(logger, "ENTRO PLANIFICACION. Evaluando procesos para READY.");
 
         t_pcb *siguiente = NULL;

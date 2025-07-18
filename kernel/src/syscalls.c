@@ -235,7 +235,7 @@ void finalizar_proceso(t_pcb *pcb)
 
     remover_pcb(pcb);
 
-    sem_post(&sem_procesos_que_van_a_ready); // OJO CON ESTO, NO ME TENGO QUE OLVIDAR DE QUE PRIMERO VAN LOS SUSPREADY
+    sem_post(&sem_largo_plazo); // OJO CON ESTO, NO ME TENGO QUE OLVIDAR DE QUE PRIMERO VAN LOS SUSPREADY
 
 }
 
