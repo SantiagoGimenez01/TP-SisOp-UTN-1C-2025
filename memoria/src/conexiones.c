@@ -306,7 +306,7 @@ void operarCPU(int socket_cliente)
                 // No deberia pasar
                 return;
             }
-
+            usleep(configMEMORIA.retardo_memoria * 1000);
             char *instruccion = list_get(proceso->instrucciones, pc);
             proceso->metricas.instrucciones_solicitadas++;
             if (instruccion == NULL)
@@ -367,7 +367,7 @@ void operarCPU(int socket_cliente)
 
             t_proceso_en_memoria *proceso = buscar_proceso_por_pid(pid);
             char *contenido = leer_fragmento(proceso, marco, desplazamiento, tamanio);
-
+            usleep(configMEMORIA.retardo_memoria * 1000);
             log_info(logger, "## PID: %i - Lectura - Dir. Física: (Marco: %i | Offset: %i) - Tamaño: %i", pid, marco, desplazamiento, tamanio);
 
             t_paquete *respuesta = crear_paquete();
@@ -439,7 +439,7 @@ void operarCPU(int socket_cliente)
             t_proceso_en_memoria *proceso = buscar_proceso_por_pid(pid);
 
             escribir_en_pagina(proceso, marco, desplazamiento, datos);
-
+            usleep(configMEMORIA.retardo_memoria * 1000);
             marcar_modificada(proceso, entradas_niveles);
             log_debug(logger, "## PID: %i - Escritura - Dir. Física: (Marco: %i | Offset: %i) - Tamaño: ????", pid, marco, desplazamiento);
 
