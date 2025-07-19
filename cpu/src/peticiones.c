@@ -77,6 +77,7 @@ void actualizar_paginas_modificadas_en_memoria(uint32_t pid)
         t_entrada_cache *entrada = list_get(cache_paginas, i);
         if (entrada->modificado)
         {
+            usleep(configCPU.retardo_cache * 1000);
             enviar_opcode(ACTUALIZAR_PAGINA_COMPLETA, socket_memoria);
             t_paquete *paquete = crear_paquete();
             agregar_int_a_paquete(paquete, pid);
@@ -87,7 +88,7 @@ void actualizar_paginas_modificadas_en_memoria(uint32_t pid)
             log_debug(logger, "DEBUG CPU - Mandando al marco %d el contenido (parcial): '%.20s'", entrada->marco, entrada->contenido);
             enviar_paquete(paquete, socket_memoria);
             eliminar_paquete(paquete);
-
+            
             int respuesta_ok;
             recv(socket_memoria, &respuesta_ok, sizeof(int), MSG_WAITALL);
             if (respuesta_ok != RESPUESTA_OK)

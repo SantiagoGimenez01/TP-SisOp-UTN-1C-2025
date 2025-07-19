@@ -115,11 +115,13 @@ t_entrada_cache *buscar_en_cache(uint32_t nro_pagina)
     {
         t_entrada_cache *entrada = list_get(cache_paginas, i);
         if (entrada->nro_pagina == nro_pagina)
-        {
+        {   
+            usleep(configCPU.retardo_cache * 1000);
             entrada->uso = true; // clock
             return entrada;
         }
     }
+    usleep(configCPU.retardo_cache * 1000);
     return NULL;
 }
 
@@ -148,7 +150,7 @@ void agregar_a_cache(uint32_t pid, t_direccion_fisica *dir, uint32_t marco, char
         nueva->uso = true;
         nueva->modificado = false;
         nueva->marco = marco;
-
+        usleep(configCPU.retardo_cache * 1000);
         list_add(cache_paginas, nueva);
     }
 }

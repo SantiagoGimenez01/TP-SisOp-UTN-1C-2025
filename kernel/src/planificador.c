@@ -294,10 +294,11 @@ bool hayDesalojo()
         return false;
     else if (strcmp(configKERNEL.algoritmo_planificacion, "SRT") == 0)
         return true;
-    else
+    else {
         log_error(logger, "Algoritmo desconocido");
+        exit(EXIT_FAILURE); // o true, si querés asumir que es desalojo por defecto
+    }
 }
-
 bool hayCpus()
 {
     pthread_mutex_lock(&mutex_cpus);
