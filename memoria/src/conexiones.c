@@ -453,6 +453,7 @@ void operarCPU(int socket_cliente)
         }
         case ACTUALIZAR_PAGINA_COMPLETA:
         {
+            usleep(configMEMORIA.retardo_memoria * 1000);
             t_paquete *paquete = recibir_paquete(socket_cliente);
             int offset = 0;
             int pid, marco;
